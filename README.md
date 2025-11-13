@@ -10,4 +10,5 @@ gcc -Wall -Wextra -std=c99 \
   -L"$(brew --prefix raylib)/lib" \
   -lraylib -lm \
   -framework Cocoa -framework IOKit -framework CoreVideo
+
 ./game
