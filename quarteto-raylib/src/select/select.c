@@ -73,6 +73,10 @@ void UpdateSelect(GameState *state) {
                 if (playerList != NULL) {
                     playerList->levelChosen = i;
                 }
+                if (i == 3) {
+                    InitGame(i);
+                    *state = STATE_GAME;
+                }
             }
         }
     }
@@ -108,7 +112,7 @@ void DrawSelect(void) {
         DrawText(nameBuffer, startX + labelWidth + 10, yPos, fontSize, GOLD);
     }
 
-    Color rankingBtnColor = CheckCollisionPointRec(GetMousePosition(), btnRanking) ? 
+    Color rankingBtnColor = CheckCollisionPointRec(GetMousePosition(), btnRanking) ?
                             (Color){100, 80, 140, 255} : (Color){60, 50, 90, 255};
     DrawRectangleRounded(btnRanking, 0.3f, 6, rankingBtnColor);
     const char *rankingText = "Ranking";

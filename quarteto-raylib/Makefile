@@ -7,7 +7,9 @@ SOURCES = $(SRC_DIR)/main.c \
           $(SRC_DIR)/player/player.c \
           $(SRC_DIR)/ranking/ranking.c \
           $(SRC_DIR)/logo/logo.c \
-          $(SRC_DIR)/select/select.c
+          $(SRC_DIR)/select/select.c \
+          $(SRC_DIR)/game/game.c \
+          $(SRC_DIR)/game/levels/level-coisa.c
 TARGET = game
 
 INCLUDES = -I$(SRC_DIR) -I$(RAYLIB_INCLUDE)

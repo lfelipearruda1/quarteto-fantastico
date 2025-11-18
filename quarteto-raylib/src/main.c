@@ -19,6 +19,7 @@ int main(void) {
             case STATE_LOGO:   UpdateLogo(&state); break;
             case STATE_SELECT: UpdateSelect(&state); break;
             case STATE_RANKING: UpdateRanking(&state); break;
+            case STATE_GAME: UpdateGame(&state); break;
         }
 
         BeginDrawing();
@@ -26,12 +27,14 @@ int main(void) {
             case STATE_LOGO:   DrawLogo(); break;
             case STATE_SELECT: DrawSelect(); break;
             case STATE_RANKING: DrawRanking(); break;
+            case STATE_GAME: DrawGame(); break;
         }
         EndDrawing();
     }
 
     UnloadLogo();
     UnloadSelect();
+    UnloadGame();
     FreePlayerList();
     FreeRanking();
 

@@ -18,6 +18,7 @@ void AddPlayerToList(const char *name, int level) {
     memcpy(p->name, name, len + 1);
 
     p->levelChosen = level;
+    p->score = 0;
     p->next = NULL;
 
     p->next = playerList;
@@ -41,5 +42,16 @@ void FreePlayerList(void) {
         curr = next;
     }
     playerList = NULL;
+}
+
+void UpdatePlayerScore(const char *name, int newScore) {
+    Player *curr = playerList;
+    while (curr) {
+        if (strcmp(curr->name, name) == 0) {
+            curr->score = newScore;
+            return;
+        }
+        curr = curr->next;
+    }
 }
 
