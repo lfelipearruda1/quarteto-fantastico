@@ -6,6 +6,7 @@
 
 typedef struct {
     char name[32];
+    int score;
     int position;
 } RankingPlayer;
 

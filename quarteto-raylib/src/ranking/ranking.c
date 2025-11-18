@@ -61,14 +61,35 @@ void LoadRanking(void) {
             line[len-1] = '\0';
         }
         if (strlen(line) > 0) {
-            strncpy(rankingList[idx].name, line, sizeof(rankingList[idx].name) - 1);
-            rankingList[idx].name[sizeof(rankingList[idx].name) - 1] = '\0';
-            rankingList[idx].position = idx + 1;
-            idx++;
+            char name[64];
+            int score = 0;
+            
+            int parsed = sscanf(line, "%63s %d", name, &score);
+            if (parsed >= 1) {
+                strncpy(rankingList[idx].name, name, sizeof(rankingList[idx].name) - 1);
+                rankingList[idx].name[sizeof(rankingList[idx].name) - 1] = '\0';
+                rankingList[idx].score = (parsed == 2) ? score : 0;
+                rankingList[idx].position = idx + 1;
+                idx++;
+            }
         }
     }
     fclose(f);
     rankingCount = idx;
+    
+    for (int i = 0; i < rankingCount - 1; i++) {
+        for (int j = i + 1; j < rankingCount; j++) {
+            if (rankingList[j].score > rankingList[i].score) {
+                RankingPlayer temp = rankingList[i];
+                rankingList[i] = rankingList[j];
+                rankingList[j] = temp;
+            }
+        }
+    }
+    
+    for (int i = 0; i < rankingCount; i++) {
+        rankingList[i].position = i + 1;
+    }
 
     currentPlayerPosition = -1;
     if (nameSaved && strlen(currentPlayerName) > 0) {
@@ -101,7 +122,7 @@ void UpdateRanking(GameState *state) {
 void DrawRanking(void) {
     ClearBackground((Color){12, 16, 28, 255});
 
-    const char *title = "RANKING GERAL";
+    const char *title = "RANKING POR PONTUACAO";
     int titleWidth = MeasureText(title, 32);
     DrawText(title, W/2 - titleWidth/2, 30, 32, GOLD);
 
@@ -118,6 +139,7 @@ void DrawRanking(void) {
 
     DrawText("Pos.", 50, startY, 20, GRAY);
     DrawText("Nome", 150, startY, 20, GRAY);
+    DrawText("Pontos", W - 200, startY, 20, GRAY);
 
     DrawLine(40, startY + 25, W - 40, startY + 25, GRAY);
 
@@ -138,9 +160,12 @@ void DrawRanking(void) {
         DrawText(posStr, 50, y, 18, textColor);
 
         DrawText(rankingList[i].name, 150, y, 18, textColor);
+        char scoreStr[16];
+        snprintf(scoreStr, sizeof(scoreStr), "%d", rankingList[i].score);
+        DrawText(scoreStr, W - 200, y, 18, textColor);
 
         if (currentPlayerPosition > 0 && rankingList[i].position == currentPlayerPosition) {
-            DrawText("<- VOCÊ", W - 150, y, 16, GOLD);
+            DrawText("<- VOCÊ", W - 120, y, 16, GOLD);
         }
 
         y += lineHeight;
