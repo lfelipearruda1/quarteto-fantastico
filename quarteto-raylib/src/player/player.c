@@ -1,7 +1,13 @@
-#include "player.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct Player {
+    char *name;
+    int levelChosen;
+    int score;
+    struct Player *next;
+} Player;
 
 Player *playerList = NULL;
 
@@ -101,4 +107,3 @@ void UpdatePlayerScore(const char *name, int newScore) {
     free(names);
     free(scores);
 }
-

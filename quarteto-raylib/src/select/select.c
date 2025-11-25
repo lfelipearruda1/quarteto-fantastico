@@ -1,8 +1,31 @@
-#include "select.h"
-#include "player/player.h"
-#include "ranking/ranking.h"
 #include "raylib.h"
 #include <string.h>
+#include <stdbool.h>
+
+#define W 960
+#define H 540
+
+typedef enum {
+    STATE_LOGO,
+    STATE_SELECT,
+    STATE_RANKING,
+    STATE_GAME
+} GameState;
+
+typedef struct Player {
+    char *name;
+    int levelChosen;
+    int score;
+    struct Player *next;
+} Player;
+
+extern Player *playerList;
+
+void AddPlayerToList(const char *name, int level);
+void SaveNameToFile(const char *name);
+void SetCurrentPlayerName(const char *name, bool saved);
+void LoadRanking(void);
+void InitGame(int level);
 
 static Rectangle cards[4];
 static Texture2D cardImgs[4];
@@ -155,4 +178,3 @@ const char* GetPlayerName(void) {
 bool IsNameSaved(void) {
     return nameSaved;
 }
-

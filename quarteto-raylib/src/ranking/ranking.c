@@ -1,8 +1,24 @@
-#include "ranking.h"
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
+#define W 960
+#define H 540
+
+typedef enum {
+    STATE_LOGO,
+    STATE_SELECT,
+    STATE_RANKING,
+    STATE_GAME
+} GameState;
+
+typedef struct {
+    char name[32];
+    int score;
+    int position;
+} RankingPlayer;
 
 RankingPlayer *rankingList = NULL;
 int rankingCount = 0;
@@ -10,6 +26,7 @@ int currentPlayerPosition = -1;
 
 static char currentPlayerName[32] = {0};
 static bool nameSaved = false;
+static Rectangle btnBackRanking;
 
 void SetCurrentPlayerName(const char *name, bool saved) {
     strncpy(currentPlayerName, name, sizeof(currentPlayerName) - 1);
@@ -106,8 +123,6 @@ void InitRanking(void) {
     LoadRanking();
 }
 
-static Rectangle btnBackRanking;
-
 void UpdateRanking(GameState *state) {
     btnBackRanking = (Rectangle){ 20, H - 50, 100, 35 };
 
@@ -190,4 +205,3 @@ void FreeRanking(void) {
     rankingCount = 0;
     currentPlayerPosition = -1;
 }
-

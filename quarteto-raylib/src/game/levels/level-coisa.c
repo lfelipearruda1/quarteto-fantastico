@@ -1,9 +1,11 @@
-#include "level.h"
-#include "player/player.h"
+#include "raylib.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 
+#define W 960
+#define H 540
 #define MAX_ENEMIES 12
 #define MAX_OBSTACLES 15
 #define MAX_ROCKS 3
@@ -11,6 +13,45 @@
 #define MAP_LENGTH 8000
 #define MAX_ROCK_DISTANCE 400
 #define ENEMY_SPAWN_DISTANCE 600
+
+typedef enum {
+    STATE_LOGO,
+    STATE_SELECT,
+    STATE_RANKING,
+    STATE_GAME
+} GameState;
+
+typedef enum {
+    LEVEL_COISA,
+    LEVEL_HOMEM_ELASTICO,
+    LEVEL_MULHER_INVISIVEL,
+    LEVEL_TOCHA_HUMANA
+} LevelType;
+
+typedef struct Level Level;
+
+typedef struct {
+    void (*init)(Level *level);
+    void (*update)(Level *level, GameState *state);
+    void (*draw)(Level *level);
+    void (*unload)(Level *level);
+} LevelFunctions;
+
+struct Level {
+    LevelType type;
+    LevelFunctions functions;
+    void *data;
+};
+
+typedef struct Player {
+    char *name;
+    int levelChosen;
+    int score;
+    struct Player *next;
+} Player;
+
+extern Player *playerList;
+void UpdatePlayerScore(const char *name, int newScore);
 
 typedef struct {
     Vector2 position;
@@ -453,4 +494,3 @@ void DestroyLevel(Level *level) {
         free(level);
     }
 }
-
