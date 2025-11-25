@@ -33,6 +33,9 @@ struct Level {
     void *data;
 };
 
+Level* CreateLevelTocha(void);
+Level* CreateLevelHomemElastico(void);
+Level* CreateLevelMulherInvisivel(void);
 Level* CreateLevelCoisa(void);
 void DestroyLevel(Level *level);
 
@@ -45,13 +48,19 @@ void InitGame(int level) {
 
     switch (level) {
         case 0:
-            currentLevel = CreateLevelCoisa();
+            currentLevel = CreateLevelTocha();
             break;
         case 1:
+            currentLevel = CreateLevelHomemElastico();
+            break;
+        case 2:
+            currentLevel = CreateLevelMulherInvisivel();
+            break;
+        case 3:
             currentLevel = CreateLevelCoisa();
             break;
         default:
-            currentLevel = CreateLevelCoisa();
+            currentLevel = CreateLevelTocha();
             break;
     }
 }

@@ -1,14 +1,62 @@
-#include "level.h"
-#include "player/player.h"
+#include "raylib.h"
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <stdbool.h>
 
+#define W 960
+#define H 540
 #define MAX_FIREBALLS 10
 #define MAX_ENEMIES 10
-#define MAX_OBSTACLES 10
+#define MAX_OBSTACLES 12
 #define GROUND_Y 400
-#define MAP_LENGTH 7000
+#define MAP_LENGTH 6000
+#define ENEMY_SPAWN_DISTANCE 500
+
+typedef enum {
+    STATE_LOGO,
+    STATE_SELECT,
+    STATE_RANKING,
+    STATE_GAME
+} GameState;
+
+typedef enum {
+    LEVEL_COISA,
+    LEVEL_HOMEM_ELASTICO,
+    LEVEL_MULHER_INVISIVEL,
+    LEVEL_TOCHA_HUMANA
+} LevelType;
+
+typedef struct Level Level;
+
+typedef struct {
+    void (*init)(Level *level);
+    void (*update)(Level *level, GameState *state);
+    void (*draw)(Level *level);
+    void (*unload)(Level *level);
+} LevelFunctions;
+
+struct Level {
+    LevelType type;
+    LevelFunctions functions;
+    void *data;
+};
+
+typedef struct Player {
+    char *name;
+    int levelChosen;
+    int score;
+    struct Player *next;
+} Player;
+
+extern Player *playerList;
+void UpdatePlayerScore(const char *name, int newScore);
+
+typedef enum {
+    ANIM_IDLE,
+    ANIM_RUNNING,
+    ANIM_JUMPING,
+    ANIM_ATTACKING
+} AnimationState;
 
 typedef struct {
     Vector2 position;
@@ -17,19 +65,25 @@ typedef struct {
     int health;
     float width;
     float height;
+    AnimationState currentAnimation;
+    int animFrame;
+    float animTimer;
+    float attackTimer;
+    bool isAttacking;
 } GameCharacter;
 
 typedef struct {
     Vector2 position;
     bool active;
     float speed;
+    int animFrame;
+    float animTimer;
 } Fireball;
 
 typedef struct {
     Vector2 position;
     bool active;
     float speed;
-    int health;
     float width;
     float height;
 } Enemy;
@@ -49,10 +103,20 @@ typedef struct {
     bool gameLost;
     float gameEndTimer;
     int score;
+
     Texture2D backgroundTexture;
-    Texture2D playerTexture;
     Texture2D platformTexture;
     Texture2D obstacleTexture;
+    Texture2D heartTexture;
+
+    Texture2D playerIdle;
+    Texture2D playerRunning[3];
+    Texture2D playerJumping[3];
+    Texture2D playerAttacking[2];
+
+    Texture2D fireballTexture;
+
+    Texture2D enemyTexture;
 } LevelTochaData;
 
 static void ShootFireball(LevelTochaData *data) {
@@ -63,7 +127,14 @@ static void ShootFireball(LevelTochaData *data) {
                 data->player.position.y + data->player.height / 2
             };
             data->fireballs[i].active = true;
-            data->fireballs[i].speed = 10.0f;
+            data->fireballs[i].speed = 12.0f;
+            data->fireballs[i].animFrame = 0;
+            data->fireballs[i].animTimer = 0;
+
+            data->player.isAttacking = true;
+            data->player.attackTimer = 0.3f;
+            data->player.currentAnimation = ANIM_ATTACKING;
+            data->player.animFrame = 0;
             break;
         }
     }
@@ -79,10 +150,23 @@ static void InitLevelTocha(Level *level) {
     data->score = 0;
     data->cameraX = 0;
 
-    data->backgroundTexture = LoadTexture("assets/tocha-humana/fundo.png");
-    data->playerTexture = LoadTexture("assets/tocha-humana/tocha.png");
-    data->platformTexture = LoadTexture("assets/tocha-humana/plataforma.png");
-    data->obstacleTexture = LoadTexture("assets/tocha-humana/obstaculo.png");
+    data->backgroundTexture = LoadTexture("assets/coisa/fundoicoisa.png");
+    data->platformTexture = LoadTexture("assets/coisa/plataforma-coisa.png");
+    data->obstacleTexture = LoadTexture("assets/coisa/obstaculo-coisa.png");
+    data->heartTexture = LoadTexture("assets/coracao.png");
+    data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
+
+    data->playerIdle = LoadTexture("assets/tocha-humana/parado-1-Photoroom.png");
+    data->playerRunning[0] = LoadTexture("assets/tocha-humana/correndo-1.png");
+    data->playerRunning[1] = LoadTexture("assets/tocha-humana/correndo-2.png");
+    data->playerRunning[2] = LoadTexture("assets/tocha-humana/correndo-3.png");
+    data->playerJumping[0] = LoadTexture("assets/tocha-humana/pulando-1-Photoroom.png");
+    data->playerJumping[1] = LoadTexture("assets/tocha-humana/pulando-2-Photoroom.png");
+    data->playerJumping[2] = LoadTexture("assets/tocha-humana/pulando-3-Photoroom.png");
+    data->playerAttacking[0] = LoadTexture("assets/tocha-humana/atacando-1.png");
+    data->playerAttacking[1] = LoadTexture("assets/tocha-humana/atacando-2-Photoroom.png");
+
+    data->fireballTexture = LoadTexture("assets/tocha-humana/bola-de-fogo-Photoroom.png");
 
     data->player.position = (Vector2){ 100, GROUND_Y - 110 };
     data->player.velocity = (Vector2){ 0, 0 };
@@ -90,23 +174,27 @@ static void InitLevelTocha(Level *level) {
     data->player.health = 3;
     data->player.width = 90;
     data->player.height = 110;
+    data->player.currentAnimation = ANIM_IDLE;
+    data->player.animFrame = 0;
+    data->player.animTimer = 0;
+    data->player.attackTimer = 0;
+    data->player.isAttacking = false;
 
     for (int i = 0; i < MAX_FIREBALLS; i++) {
         data->fireballs[i].active = false;
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        data->enemies[i].position = (Vector2){ 700 + i * 650, GROUND_Y - 40 };
-        data->enemies[i].active = true;
-        data->enemies[i].speed = 2.0f + (float)(rand() % 100) / 100.0f;
-        data->enemies[i].health = 1;
-        data->enemies[i].width = 40;
-        data->enemies[i].height = 40;
+        data->enemies[i].position = (Vector2){ 800 + i * 600, GROUND_Y - 70 };
+        data->enemies[i].active = false;
+        data->enemies[i].speed = 1.2f + (float)(rand() % 60) / 100.0f;
+        data->enemies[i].width = 70;
+        data->enemies[i].height = 70;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
-        float x = 600 + i * 650 + (float)(rand() % 150);
-        float size = 50 + (float)(rand() % 30);
+        float x = 600 + i * 500 + (float)(rand() % 100);
+        float size = 40 + (float)(rand() % 25);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
     }
@@ -130,6 +218,15 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
         }
         return;
     }
+
+    if (data->player.isAttacking) {
+        data->player.attackTimer -= GetFrameTime();
+        if (data->player.attackTimer <= 0) {
+            data->player.isAttacking = false;
+        }
+    }
+
+    data->player.animTimer += GetFrameTime();
 
     data->player.velocity.x = 0;
 
@@ -155,9 +252,11 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
     if ((IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE)) && data->player.onGround) {
         data->player.velocity.y = -15.0f;
         data->player.onGround = false;
+        data->player.currentAnimation = ANIM_JUMPING;
+        data->player.animFrame = 0;
     }
 
-    if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER)) {
+    if (IsKeyPressed(KEY_E)) {
         ShootFireball(data);
     }
 
@@ -170,6 +269,52 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
         data->player.position.y = GROUND_Y - data->player.height;
         data->player.velocity.y = 0;
         data->player.onGround = true;
+    }
+
+    if (!data->player.isAttacking) {
+        if (!data->player.onGround) {
+            if (data->player.currentAnimation != ANIM_JUMPING) {
+                data->player.currentAnimation = ANIM_JUMPING;
+                data->player.animFrame = 0;
+                data->player.animTimer = 0;
+            }
+        } else if (data->player.velocity.x != 0) {
+            if (data->player.currentAnimation != ANIM_RUNNING) {
+                data->player.currentAnimation = ANIM_RUNNING;
+                data->player.animFrame = 0;
+                data->player.animTimer = 0;
+            }
+        } else {
+            data->player.currentAnimation = ANIM_IDLE;
+            data->player.animFrame = 0;
+        }
+    }
+
+    float animSpeed = 0.1f;
+    if (data->player.currentAnimation == ANIM_RUNNING) {
+        animSpeed = 0.08f;
+    } else if (data->player.currentAnimation == ANIM_JUMPING) {
+        animSpeed = 0.15f;
+    } else if (data->player.currentAnimation == ANIM_ATTACKING) {
+        animSpeed = 0.15f;
+    }
+
+    if (data->player.animTimer >= animSpeed) {
+        data->player.animTimer = 0;
+        data->player.animFrame++;
+
+        int maxFrames = 1;
+        if (data->player.currentAnimation == ANIM_RUNNING) {
+            maxFrames = 3;
+        } else if (data->player.currentAnimation == ANIM_JUMPING) {
+            maxFrames = 3;
+        } else if (data->player.currentAnimation == ANIM_ATTACKING) {
+            maxFrames = 2;
+        }
+
+        if (data->player.animFrame >= maxFrames) {
+            data->player.animFrame = 0;
+        }
     }
 
     Rectangle playerRect = {
@@ -207,8 +352,22 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
         if (data->fireballs[i].active) {
             data->fireballs[i].position.x += data->fireballs[i].speed;
 
+            data->fireballs[i].animTimer += GetFrameTime();
+            if (data->fireballs[i].animTimer >= 0.1f) {
+                data->fireballs[i].animTimer = 0;
+                data->fireballs[i].animFrame = (data->fireballs[i].animFrame + 1) % 4;
+            }
+
             if (data->fireballs[i].position.x > data->cameraX + W + 50) {
                 data->fireballs[i].active = false;
+            }
+        }
+    }
+
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        if (!data->enemies[i].active) {
+            if (data->player.position.x + ENEMY_SPAWN_DISTANCE >= data->enemies[i].position.x) {
+                data->enemies[i].active = true;
             }
         }
     }
@@ -218,8 +377,7 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
             data->enemies[i].position.x -= data->enemies[i].speed;
 
             if (data->enemies[i].position.x < data->cameraX - 100) {
-                data->enemies[i].position.x = data->cameraX + W + 100;
-                data->enemies[i].active = true;
+                data->enemies[i].active = false;
             }
 
             Rectangle enemyRect = {
@@ -240,20 +398,16 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
             for (int j = 0; j < MAX_FIREBALLS; j++) {
                 if (data->fireballs[j].active) {
                     Rectangle fireballRect = {
-                        data->fireballs[j].position.x,
-                        data->fireballs[j].position.y,
-                        15,
-                        15
+                        data->fireballs[j].position.x - 20,
+                        data->fireballs[j].position.y - 20,
+                        40,
+                        40
                     };
 
                     if (CheckCollisionRecs(fireballRect, enemyRect)) {
-                        data->enemies[i].health--;
+                        data->enemies[i].active = false;
                         data->fireballs[j].active = false;
-
-                        if (data->enemies[i].health <= 0) {
-                            data->enemies[i].active = false;
-                            data->score += 100;
-                        }
+                        data->score += 100;
                     }
                 }
             }
@@ -274,8 +428,7 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
 static void DrawLevelTocha(Level *level) {
     LevelTochaData *data = (LevelTochaData*)level->data;
 
-    ClearBackground((Color){20, 10, 30, 255});
-
+    ClearBackground((Color){30, 15, 50, 255});
 
     float parallaxSpeed = 0.5f;
     float bgX = -(data->cameraX * parallaxSpeed);
@@ -314,72 +467,80 @@ static void DrawLevelTocha(Level *level) {
         }
     }
 
-    Rectangle source = {0, 0, (float)data->playerTexture.width, (float)data->playerTexture.height};
+    Texture2D currentTexture = data->playerIdle;
+
+    switch (data->player.currentAnimation) {
+        case ANIM_IDLE:
+            currentTexture = data->playerIdle;
+            break;
+        case ANIM_RUNNING:
+            currentTexture = data->playerRunning[data->player.animFrame % 3];
+            break;
+        case ANIM_JUMPING:
+            currentTexture = data->playerJumping[data->player.animFrame % 3];
+            break;
+        case ANIM_ATTACKING:
+            currentTexture = data->playerAttacking[data->player.animFrame % 2];
+            break;
+    }
+
+    Rectangle source = {0, 0, (float)currentTexture.width, (float)currentTexture.height};
     Rectangle dest = {
         data->player.position.x - data->cameraX,
         data->player.position.y,
         data->player.width,
         data->player.height
     };
-    DrawTexturePro(data->playerTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
+    DrawTexturePro(currentTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
 
     for (int i = 0; i < MAX_FIREBALLS; i++) {
         if (data->fireballs[i].active) {
-            DrawCircle(
-                (int)(data->fireballs[i].position.x - data->cameraX),
-                (int)data->fireballs[i].position.y,
-                7,
-                ORANGE
-            );
-            DrawCircle(
-                (int)(data->fireballs[i].position.x - data->cameraX),
-                (int)data->fireballs[i].position.y,
-                4,
-                YELLOW
-            );
+            Rectangle source = {0, 0, (float)data->fireballTexture.width, (float)data->fireballTexture.height};
+            Rectangle dest = {
+                data->fireballs[i].position.x - data->cameraX - 20,
+                data->fireballs[i].position.y - 20,
+                40,
+                40
+            };
+
+            float rotation = data->fireballs[i].animFrame * 90.0f;
+            Vector2 origin = {20, 20};
+
+            DrawTexturePro(data->fireballTexture, source, dest, origin, rotation, WHITE);
         }
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
         if (data->enemies[i].active) {
-            Rectangle enemyDrawRect = {
+            Rectangle source = {0, 0, (float)data->enemyTexture.width, (float)data->enemyTexture.height};
+            Rectangle dest = {
                 data->enemies[i].position.x - data->cameraX,
                 data->enemies[i].position.y,
                 data->enemies[i].width,
                 data->enemies[i].height
             };
-            DrawRectangleRec(enemyDrawRect, BLUE);
-            DrawRectangleLinesEx(enemyDrawRect, 2, DARKBLUE);
-
-            DrawCircle(
-                (int)(data->enemies[i].position.x - data->cameraX + 10),
-                (int)(data->enemies[i].position.y + 10),
-                3,
-                WHITE
-            );
-            DrawCircle(
-                (int)(data->enemies[i].position.x - data->cameraX + 25),
-                (int)(data->enemies[i].position.y + 10),
-                3, 
-                WHITE
-            );
+            DrawTexturePro(data->enemyTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
         }
     }
 
-    DrawRectangle(0, 0, W, 40, (Color){0, 0, 0, 180});
-    DrawText(TextFormat("VIDAS: %d", data->player.health), 10, 10, 20, RED);
-    DrawText(TextFormat("PONTOS: %d", data->score), 200, 10, 20, GOLD);
-    DrawText(TextFormat("DISTANCIA: %.0f/%.0f", data->player.position.x, (float)MAP_LENGTH), 450, 10, 20, WHITE);
+    for (int i = 0; i < data->player.health && i < 3; i++) {
+        Rectangle source = {0, 0, (float)data->heartTexture.width, (float)data->heartTexture.height};
+        Rectangle dest = {10 + i * 55, 10, 40, 40};
+        DrawTexturePro(data->heartTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
+    }
+
+    DrawText(TextFormat("PONTOS: %d", data->score), 180, 20, 22, GOLD);
+    DrawText(TextFormat("DISTANCIA: %.0f/%.0f", data->player.position.x, (float)MAP_LENGTH), 450, 20, 20, WHITE);
 
     float progress = data->player.position.x / MAP_LENGTH;
     DrawRectangle(10, H - 30, (int)(W - 20), 20, DARKGRAY);
     DrawRectangle(10, H - 30, (int)((W - 20) * progress), 20, ORANGE);
 
-    DrawText("WASD: Mover | W/ESPACO: Voar | E/ENTER: Lancar Fogo", 10, H - 60, 16, LIGHTGRAY);
+    DrawText("WASD: Mover | W/ESPACO: Pular | E: Lancar Bola de Fogo", 10, H - 60, 16, LIGHTGRAY);
 
     if (data->gameWon) {
         DrawRectangle(0, 0, W, H, (Color){0, 0, 0, 180});
-        const char *winText = "CHAMAS DA VITORIA!";
+        const char *winText = "VITORIA!";
         int textWidth = MeasureText(winText, 60);
         DrawText(winText, W/2 - textWidth/2, H/2 - 60, 60, ORANGE);
 
@@ -390,9 +551,10 @@ static void DrawLevelTocha(Level *level) {
         const char *continueText = "Pressione ENTER para continuar...";
         int continueWidth = MeasureText(continueText, 20);
         DrawText(continueText, W/2 - continueWidth/2, H/2 + 80, 20, WHITE);
-    } else if (data->gameLost) {
+    }
+    else if (data->gameLost) {
         DrawRectangle(0, 0, W, H, (Color){0, 0, 0, 180});
-        const char *loseText = "CHAMA APAGADA!";
+        const char *loseText = "GAME OVER!";
         int textWidth = MeasureText(loseText, 60);
         DrawText(loseText, W/2 - textWidth/2, H/2 - 60, 60, RED);
 
@@ -408,11 +570,9 @@ static void DrawLevelTocha(Level *level) {
 
 static void UnloadLevelTocha(Level *level) {
     LevelTochaData *data = (LevelTochaData*)level->data;
+
     if (data->backgroundTexture.id > 0) {
         UnloadTexture(data->backgroundTexture);
-    }
-    if (data->playerTexture.id > 0) {
-        UnloadTexture(data->playerTexture);
     }
     if (data->platformTexture.id > 0) {
         UnloadTexture(data->platformTexture);
@@ -420,11 +580,38 @@ static void UnloadLevelTocha(Level *level) {
     if (data->obstacleTexture.id > 0) {
         UnloadTexture(data->obstacleTexture);
     }
+    if (data->heartTexture.id > 0) {
+        UnloadTexture(data->heartTexture);
+    }
+    if (data->enemyTexture.id > 0) {
+        UnloadTexture(data->enemyTexture);
+    }
+
+    if (data->playerIdle.id > 0) {
+        UnloadTexture(data->playerIdle);
+    }
+    for (int i = 0; i < 3; i++) {
+        if (data->playerRunning[i].id > 0) {
+            UnloadTexture(data->playerRunning[i]);
+        }
+        if (data->playerJumping[i].id > 0) {
+            UnloadTexture(data->playerJumping[i]);
+        }
+    }
+    for (int i = 0; i < 2; i++) {
+        if (data->playerAttacking[i].id > 0) {
+            UnloadTexture(data->playerAttacking[i]);
+        }
+    }
+
+    if (data->fireballTexture.id > 0) {
+        UnloadTexture(data->fireballTexture);
+    }
 }
 
 Level* CreateLevelTocha(void) {
     Level *level = (Level*)malloc(sizeof(Level));
-    level->type = LEVEL_TOCHA;
+    level->type = LEVEL_TOCHA_HUMANA;
     level->functions.init = InitLevelTocha;
     level->functions.update = UpdateLevelTocha;
     level->functions.draw = DrawLevelTocha;
@@ -435,4 +622,3 @@ Level* CreateLevelTocha(void) {
 
     return level;
 }
-

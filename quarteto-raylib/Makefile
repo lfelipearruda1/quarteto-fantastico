@@ -9,6 +9,9 @@ SOURCES = $(SRC_DIR)/main.c \
           $(SRC_DIR)/logo/logo.c \
           $(SRC_DIR)/select/select.c \
           $(SRC_DIR)/game/game.c \
+          $(SRC_DIR)/game/levels/level-tocha.c \
+          $(SRC_DIR)/game/levels/level-homem-elastico.c \
+          $(SRC_DIR)/game/levels/level-mulher-invisivel.c \
           $(SRC_DIR)/game/levels/level-coisa.c
 TARGET = game
 

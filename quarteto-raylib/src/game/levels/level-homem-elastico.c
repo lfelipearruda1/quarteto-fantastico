@@ -5,13 +5,12 @@
 
 #define W 960
 #define H 540
-#define MAX_ROCKS 3
-#define MAX_ENEMIES 12
-#define MAX_OBSTACLES 15
+#define MAX_PUNCHES 5
+#define MAX_ENEMIES 10
+#define MAX_OBSTACLES 12
 #define GROUND_Y 400
-#define MAP_LENGTH 8000
-#define MAX_ROCK_DISTANCE 400
-#define ENEMY_SPAWN_DISTANCE 600
+#define MAP_LENGTH 6500
+#define ENEMY_SPAWN_DISTANCE 550
 
 typedef enum {
     STATE_LOGO,
@@ -52,13 +51,6 @@ typedef struct Player {
 extern Player *playerList;
 void UpdatePlayerScore(const char *name, int newScore);
 
-typedef enum {
-    ANIM_IDLE,
-    ANIM_RUNNING,
-    ANIM_JUMPING,
-    ANIM_ATTACKING
-} AnimationState;
-
 typedef struct {
     Vector2 position;
     Vector2 velocity;
@@ -66,11 +58,6 @@ typedef struct {
     int health;
     float width;
     float height;
-    AnimationState currentAnimation;
-    int animFrame;
-    float animTimer;
-    float attackTimer;
-    bool isAttacking;
 } GameCharacter;
 
 typedef struct {
@@ -78,14 +65,12 @@ typedef struct {
     bool active;
     float speed;
     float startX;
-    float rotation;
-} Rock;
+} Punch;
 
 typedef struct {
     Vector2 position;
     bool active;
     float speed;
-    int health;
     float width;
     float height;
 } Enemy;
@@ -97,7 +82,7 @@ typedef struct {
 
 typedef struct {
     GameCharacter player;
-    Rock rocks[MAX_ROCKS];
+    Punch punches[MAX_PUNCHES];
     Enemy enemies[MAX_ENEMIES];
     Obstacle obstacles[MAX_OBSTACLES];
     float cameraX;
@@ -105,46 +90,30 @@ typedef struct {
     bool gameLost;
     float gameEndTimer;
     int score;
-
     Texture2D backgroundTexture;
+    Texture2D playerTexture;
     Texture2D platformTexture;
     Texture2D obstacleTexture;
     Texture2D heartTexture;
+} LevelElasticoData;
 
-    Texture2D playerIdle;
-    Texture2D playerRunning[3];
-    Texture2D playerJumping;
-    Texture2D playerAttacking[2];
-    Texture2D playerCrouching;
-
-    Texture2D rockTexture;
-
-    Texture2D enemyTexture;
-} Level1Data;
-
-static void ShootRock(Level1Data *data) {
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        if (!data->rocks[i].active) {
-            data->rocks[i].position = (Vector2){
+static void ShootPunch(LevelElasticoData *data) {
+    for (int i = 0; i < MAX_PUNCHES; i++) {
+        if (!data->punches[i].active) {
+            data->punches[i].position = (Vector2){
                 data->player.position.x + data->player.width,
                 data->player.position.y + data->player.height / 2
             };
-            data->rocks[i].startX = data->rocks[i].position.x;
-            data->rocks[i].active = true;
-            data->rocks[i].speed = 8.0f;
-            data->rocks[i].rotation = 0;
-
-            data->player.isAttacking = true;
-            data->player.attackTimer = 0.3f;
-            data->player.currentAnimation = ANIM_ATTACKING;
-            data->player.animFrame = 0;
+            data->punches[i].startX = data->punches[i].position.x;
+            data->punches[i].active = true;
+            data->punches[i].speed = 9.0f;
             break;
         }
     }
 }
 
-static void InitLevel1(Level *level) {
-    Level1Data *data = (Level1Data*)malloc(sizeof(Level1Data));
+static void InitLevelElastico(Level *level) {
+    LevelElasticoData *data = (LevelElasticoData*)malloc(sizeof(LevelElasticoData));
     level->data = data;
 
     data->gameWon = false;
@@ -154,21 +123,10 @@ static void InitLevel1(Level *level) {
     data->cameraX = 0;
 
     data->backgroundTexture = LoadTexture("assets/coisa/fundoicoisa.png");
+    data->playerTexture = LoadTexture("assets/homem-elastico/foto-homem-elastico.png");
     data->platformTexture = LoadTexture("assets/coisa/plataforma-coisa.png");
     data->obstacleTexture = LoadTexture("assets/coisa/obstaculo-coisa.png");
     data->heartTexture = LoadTexture("assets/coracao.png");
-    data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
-
-    data->playerIdle = LoadTexture("assets/coisa/parado.png");
-    data->playerRunning[0] = LoadTexture("assets/coisa/correndo-1.png");
-    data->playerRunning[1] = LoadTexture("assets/coisa/correndo-2.png");
-    data->playerRunning[2] = LoadTexture("assets/coisa/correndo-3.png");
-    data->playerJumping = LoadTexture("assets/coisa/pulando-1.png");
-    data->playerAttacking[0] = LoadTexture("assets/coisa/atacando-1.png");
-    data->playerAttacking[1] = LoadTexture("assets/coisa/atacando-2.png");
-    data->playerCrouching = LoadTexture("assets/coisa/agachando.png");
-
-    data->rockTexture = LoadTexture("assets/coisa/pedra.png");
 
     data->player.position = (Vector2){ 100, GROUND_Y - 110 };
     data->player.velocity = (Vector2){ 0, 0 };
@@ -176,35 +134,29 @@ static void InitLevel1(Level *level) {
     data->player.health = 3;
     data->player.width = 90;
     data->player.height = 110;
-    data->player.currentAnimation = ANIM_IDLE;
-    data->player.animFrame = 0;
-    data->player.animTimer = 0;
-    data->player.attackTimer = 0;
-    data->player.isAttacking = false;
 
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        data->rocks[i].active = false;
+    for (int i = 0; i < MAX_PUNCHES; i++) {
+        data->punches[i].active = false;
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        data->enemies[i].position = (Vector2){ 600 + i * 700, GROUND_Y - 80 };
+        data->enemies[i].position = (Vector2){ 700 + i * 680, GROUND_Y - 70 };
         data->enemies[i].active = false;
-        data->enemies[i].speed = 1.5f + (float)(rand() % 100) / 100.0f;
-        data->enemies[i].health = 1;
-        data->enemies[i].width = 80;
-        data->enemies[i].height = 80;
+        data->enemies[i].speed = 1.3f + (float)(rand() % 80) / 100.0f;
+        data->enemies[i].width = 70;
+        data->enemies[i].height = 70;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
-        float x = 500 + i * 550 + (float)(rand() % 150);
-        float size = 50 + (float)(rand() % 30);
+        float x = 550 + i * 530 + (float)(rand() % 120);
+        float size = 45 + (float)(rand() % 25);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
     }
 }
 
-static void UpdateLevel1(Level *level, GameState *state) {
-    Level1Data *data = (Level1Data*)level->data;
+static void UpdateLevelElastico(Level *level, GameState *state) {
+    LevelElasticoData *data = (LevelElasticoData*)level->data;
 
     if (data->gameWon || data->gameLost) {
         data->gameEndTimer += GetFrameTime();
@@ -221,15 +173,6 @@ static void UpdateLevel1(Level *level, GameState *state) {
         }
         return;
     }
-
-    if (data->player.isAttacking) {
-        data->player.attackTimer -= GetFrameTime();
-        if (data->player.attackTimer <= 0) {
-            data->player.isAttacking = false;
-        }
-    }
-
-    data->player.animTimer += GetFrameTime();
 
     data->player.velocity.x = 0;
 
@@ -255,12 +198,10 @@ static void UpdateLevel1(Level *level, GameState *state) {
     if ((IsKeyPressed(KEY_W) || IsKeyPressed(KEY_SPACE)) && data->player.onGround) {
         data->player.velocity.y = -15.0f;
         data->player.onGround = false;
-        data->player.currentAnimation = ANIM_JUMPING;
-        data->player.animFrame = 0;
     }
 
-    if (IsKeyPressed(KEY_E)) {
-        ShootRock(data);
+    if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER)) {
+        ShootPunch(data);
     }
 
     data->player.velocity.y += 0.6f;
@@ -272,50 +213,6 @@ static void UpdateLevel1(Level *level, GameState *state) {
         data->player.position.y = GROUND_Y - data->player.height;
         data->player.velocity.y = 0;
         data->player.onGround = true;
-    }
-
-    if (!data->player.isAttacking) {
-        if (!data->player.onGround) {
-            if (data->player.currentAnimation != ANIM_JUMPING) {
-                data->player.currentAnimation = ANIM_JUMPING;
-                data->player.animFrame = 0;
-                data->player.animTimer = 0;
-            }
-        } else if (data->player.velocity.x != 0) {
-            if (data->player.currentAnimation != ANIM_RUNNING) {
-                data->player.currentAnimation = ANIM_RUNNING;
-                data->player.animFrame = 0;
-                data->player.animTimer = 0;
-            }
-        } else {
-            data->player.currentAnimation = ANIM_IDLE;
-            data->player.animFrame = 0;
-        }
-    }
-
-    float animSpeed = 0.1f;
-    if (data->player.currentAnimation == ANIM_RUNNING) {
-        animSpeed = 0.08f;
-    } else if (data->player.currentAnimation == ANIM_JUMPING) {
-        animSpeed = 0.15f;
-    } else if (data->player.currentAnimation == ANIM_ATTACKING) {
-        animSpeed = 0.15f;
-    }
-
-    if (data->player.animTimer >= animSpeed) {
-        data->player.animTimer = 0;
-        data->player.animFrame++;
-
-        int maxFrames = 1;
-        if (data->player.currentAnimation == ANIM_RUNNING) {
-            maxFrames = 3;
-        } else if (data->player.currentAnimation == ANIM_ATTACKING) {
-            maxFrames = 2;
-        }
-
-        if (data->player.animFrame >= maxFrames) {
-            data->player.animFrame = 0;
-        }
     }
 
     Rectangle playerRect = {
@@ -349,14 +246,13 @@ static void UpdateLevel1(Level *level, GameState *state) {
         }
     }
 
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        if (data->rocks[i].active) {
-            data->rocks[i].position.x += data->rocks[i].speed;
-            data->rocks[i].rotation += 5.0f;
+    for (int i = 0; i < MAX_PUNCHES; i++) {
+        if (data->punches[i].active) {
+            data->punches[i].position.x += data->punches[i].speed;
 
-            if (data->rocks[i].position.x - data->rocks[i].startX > MAX_ROCK_DISTANCE ||
-                data->rocks[i].position.x > data->cameraX + W + 50) {
-                data->rocks[i].active = false;
+            if (data->punches[i].position.x - data->punches[i].startX > 450 ||
+                data->punches[i].position.x > data->cameraX + W + 50) {
+                data->punches[i].active = false;
             }
         }
     }
@@ -392,18 +288,18 @@ static void UpdateLevel1(Level *level, GameState *state) {
                 }
             }
 
-            for (int j = 0; j < MAX_ROCKS; j++) {
-                if (data->rocks[j].active) {
-                    Rectangle rockRect = {
-                        data->rocks[j].position.x - 20,
-                        data->rocks[j].position.y - 20,
-                        40,
-                        40
+            for (int j = 0; j < MAX_PUNCHES; j++) {
+                if (data->punches[j].active) {
+                    Rectangle punchRect = {
+                        data->punches[j].position.x - 15,
+                        data->punches[j].position.y - 15,
+                        30,
+                        30
                     };
 
-                    if (CheckCollisionRecs(rockRect, enemyRect)) {
+                    if (CheckCollisionRecs(punchRect, enemyRect)) {
                         data->enemies[i].active = false;
-                        data->rocks[j].active = false;
+                        data->punches[j].active = false;
                         data->score += 100;
                     }
                 }
@@ -422,10 +318,10 @@ static void UpdateLevel1(Level *level, GameState *state) {
     }
 }
 
-static void DrawLevel1(Level *level) {
-    Level1Data *data = (Level1Data*)level->data;
+static void DrawLevelElastico(Level *level) {
+    LevelElasticoData *data = (LevelElasticoData*)level->data;
 
-    ClearBackground(BLACK);
+    ClearBackground((Color){10, 20, 40, 255});
 
     float parallaxSpeed = 0.5f;
     float bgX = -(data->cameraX * parallaxSpeed);
@@ -464,57 +360,47 @@ static void DrawLevel1(Level *level) {
         }
     }
 
-    Texture2D currentTexture = data->playerIdle;
-
-    switch (data->player.currentAnimation) {
-        case ANIM_IDLE:
-            currentTexture = data->playerIdle;
-            break;
-        case ANIM_RUNNING:
-            currentTexture = data->playerRunning[data->player.animFrame % 3];
-            break;
-        case ANIM_JUMPING:
-            currentTexture = data->playerJumping;
-            break;
-        case ANIM_ATTACKING:
-            currentTexture = data->playerAttacking[data->player.animFrame % 2];
-            break;
-    }
-
-    Rectangle source = {0, 0, (float)currentTexture.width, (float)currentTexture.height};
+    Rectangle source = {0, 0, (float)data->playerTexture.width, (float)data->playerTexture.height};
     Rectangle dest = {
         data->player.position.x - data->cameraX,
         data->player.position.y,
         data->player.width,
         data->player.height
     };
-    DrawTexturePro(currentTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
+    DrawTexturePro(data->playerTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
 
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        if (data->rocks[i].active) {
-            Rectangle source = {0, 0, (float)data->rockTexture.width, (float)data->rockTexture.height};
-            Rectangle dest = {
-                data->rocks[i].position.x - data->cameraX - 20,
-                data->rocks[i].position.y - 20,
-                40,
-                40
-            };
-
-            Vector2 origin = {20, 20};
-            DrawTexturePro(data->rockTexture, source, dest, origin, data->rocks[i].rotation, WHITE);
+    for (int i = 0; i < MAX_PUNCHES; i++) {
+        if (data->punches[i].active) {
+            float distance = data->punches[i].position.x - data->punches[i].startX;
+            float maxDistance = 450;
+            float width = 10 + (distance / maxDistance) * 40;
+            
+            DrawRectangle(
+                (int)(data->punches[i].startX - data->cameraX),
+                (int)(data->punches[i].position.y - 5),
+                (int)width,
+                10,
+                BLUE
+            );
+            DrawCircle(
+                (int)(data->punches[i].position.x - data->cameraX),
+                (int)data->punches[i].position.y,
+                15,
+                SKYBLUE
+            );
         }
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
         if (data->enemies[i].active) {
-            Rectangle source = {0, 0, (float)data->enemyTexture.width, (float)data->enemyTexture.height};
-            Rectangle dest = {
+            Rectangle enemyDrawRect = {
                 data->enemies[i].position.x - data->cameraX,
                 data->enemies[i].position.y,
                 data->enemies[i].width,
                 data->enemies[i].height
             };
-            DrawTexturePro(data->enemyTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
+            DrawRectangleRec(enemyDrawRect, PURPLE);
+            DrawRectangleLinesEx(enemyDrawRect, 2, DARKPURPLE);
         }
     }
 
@@ -529,15 +415,15 @@ static void DrawLevel1(Level *level) {
 
     float progress = data->player.position.x / MAP_LENGTH;
     DrawRectangle(10, H - 30, (int)(W - 20), 20, DARKGRAY);
-    DrawRectangle(10, H - 30, (int)((W - 20) * progress), 20, GREEN);
+    DrawRectangle(10, H - 30, (int)((W - 20) * progress), 20, BLUE);
 
-    DrawText("WASD: Mover | W/ESPACO: Pular | E/ENTER: Atirar Pedra", 10, H - 60, 16, LIGHTGRAY);
+    DrawText("WASD: Mover | W/ESPACO: Pular | E/ENTER: Soco Elastico", 10, H - 60, 16, LIGHTGRAY);
 
     if (data->gameWon) {
         DrawRectangle(0, 0, W, H, (Color){0, 0, 0, 180});
         const char *winText = "VITORIA!";
         int textWidth = MeasureText(winText, 60);
-        DrawText(winText, W/2 - textWidth/2, H/2 - 60, 60, GREEN);
+        DrawText(winText, W/2 - textWidth/2, H/2 - 60, 60, BLUE);
 
         const char *scoreText = TextFormat("Pontuacao Final: %d", data->score);
         int scoreWidth = MeasureText(scoreText, 30);
@@ -546,8 +432,7 @@ static void DrawLevel1(Level *level) {
         const char *continueText = "Pressione ENTER para continuar...";
         int continueWidth = MeasureText(continueText, 20);
         DrawText(continueText, W/2 - continueWidth/2, H/2 + 80, 20, WHITE);
-    }
-    else if (data->gameLost) {
+    } else if (data->gameLost) {
         DrawRectangle(0, 0, W, H, (Color){0, 0, 0, 180});
         const char *loseText = "GAME OVER!";
         int textWidth = MeasureText(loseText, 60);
@@ -563,11 +448,13 @@ static void DrawLevel1(Level *level) {
     }
 }
 
-static void UnloadLevel1(Level *level) {
-    Level1Data *data = (Level1Data*)level->data;
-
+static void UnloadLevelElastico(Level *level) {
+    LevelElasticoData *data = (LevelElasticoData*)level->data;
     if (data->backgroundTexture.id > 0) {
         UnloadTexture(data->backgroundTexture);
+    }
+    if (data->playerTexture.id > 0) {
+        UnloadTexture(data->playerTexture);
     }
     if (data->platformTexture.id > 0) {
         UnloadTexture(data->platformTexture);
@@ -578,42 +465,15 @@ static void UnloadLevel1(Level *level) {
     if (data->heartTexture.id > 0) {
         UnloadTexture(data->heartTexture);
     }
-    if (data->enemyTexture.id > 0) {
-        UnloadTexture(data->enemyTexture);
-    }
-
-    if (data->playerIdle.id > 0) {
-        UnloadTexture(data->playerIdle);
-    }
-    for (int i = 0; i < 3; i++) {
-        if (data->playerRunning[i].id > 0) {
-            UnloadTexture(data->playerRunning[i]);
-        }
-    }
-    if (data->playerJumping.id > 0) {
-        UnloadTexture(data->playerJumping);
-    }
-    for (int i = 0; i < 2; i++) {
-        if (data->playerAttacking[i].id > 0) {
-            UnloadTexture(data->playerAttacking[i]);
-        }
-    }
-    if (data->playerCrouching.id > 0) {
-        UnloadTexture(data->playerCrouching);
-    }
-
-    if (data->rockTexture.id > 0) {
-        UnloadTexture(data->rockTexture);
-    }
 }
 
-Level* CreateLevelCoisa(void) {
+Level* CreateLevelHomemElastico(void) {
     Level *level = (Level*)malloc(sizeof(Level));
-    level->type = LEVEL_COISA;
-    level->functions.init = InitLevel1;
-    level->functions.update = UpdateLevel1;
-    level->functions.draw = DrawLevel1;
-    level->functions.unload = UnloadLevel1;
+    level->type = LEVEL_HOMEM_ELASTICO;
+    level->functions.init = InitLevelElastico;
+    level->functions.update = UpdateLevelElastico;
+    level->functions.draw = DrawLevelElastico;
+    level->functions.unload = UnloadLevelElastico;
     level->data = NULL;
 
     level->functions.init(level);
@@ -621,14 +481,3 @@ Level* CreateLevelCoisa(void) {
     return level;
 }
 
-void DestroyLevel(Level *level) {
-    if (level) {
-        if (level->functions.unload) {
-            level->functions.unload(level);
-        }
-        if (level->data) {
-            free(level->data);
-        }
-        free(level);
-    }
-}

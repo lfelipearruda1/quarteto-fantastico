@@ -48,10 +48,10 @@ void InitSelect(void) {
         cards[i] = (Rectangle){ startX + (cardW + space) * i, top, cardW, cardH };
     }
 
-    cardImgs[0] = LoadTexture("assets/tocha-humana/foto-tocha-humana.png");
+    cardImgs[0] = LoadTexture("assets/tocha-humana/foto-escolha-tocha.png");
     cardImgs[1] = LoadTexture("assets/homem-elastico/foto-homem-elastico.png");
     cardImgs[2] = LoadTexture("assets/mulher-invisivel/foto-mulher-invisel.png");
-    cardImgs[3] = LoadTexture("assets/coisa/foto-coisa.png");
+    cardImgs[3] = LoadTexture("assets/coisa/foto-escolha-coisa.png");
 
     btnSave = (Rectangle){ W*0.5f + 140, 90, 120, 32 };
     btnRanking = (Rectangle){ W - 140, H - 50, 120, 40 };
@@ -96,10 +96,8 @@ void UpdateSelect(GameState *state) {
                 if (playerList != NULL) {
                     playerList->levelChosen = i;
                 }
-                if (i == 3) {
-                    InitGame(i);
-                    *state = STATE_GAME;
-                }
+                InitGame(i);
+                *state = STATE_GAME;
             }
         }
     }
@@ -151,15 +149,27 @@ void DrawSelect(void) {
         DrawText("Clique em uma imagem para escolher.", 20, H - 30, 16, GRAY);
     }
 
+    const char *difficulties[4] = {"FACIL", "MEDIO", "DIFICIL", "EXTREMO"};
+    Color difficultyColors[4] = {GREEN, YELLOW, ORANGE, RED};
+
     for (int i = 0; i < 4; i++) {
         Color border = (selectedCard == i) ? GOLD : RAYWHITE;
         DrawRectangleRounded(cards[i], 0.2f, 6, (Color){30, 34, 46, 255});
 
         if (cardImgs[i].id > 0) {
             Rectangle src = {0, 0, cardImgs[i].width, cardImgs[i].height};
-            Rectangle dst = {cards[i].x + 10, cards[i].y + 10, cards[i].width - 20, cards[i].height - 20};
+            Rectangle dst = {cards[i].x + 10, cards[i].y + 10, cards[i].width - 20, cards[i].height - 40};
             DrawTexturePro(cardImgs[i], src, dst, (Vector2){0,0}, 0, WHITE);
         }
+
+        int diffTextWidth = MeasureText(difficulties[i], 16);
+        DrawText(
+            difficulties[i],
+            (int)(cards[i].x + (cards[i].width - diffTextWidth) / 2),
+            (int)(cards[i].y + cards[i].height - 25),
+            16,
+            difficultyColors[i]
+        );
 
         DrawRectangleLinesEx(cards[i], 2, border);
     }
