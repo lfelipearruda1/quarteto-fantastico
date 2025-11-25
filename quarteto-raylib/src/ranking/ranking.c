@@ -63,7 +63,7 @@ void LoadRanking(void) {
         if (strlen(line) > 0) {
             char name[64];
             int score = 0;
-            
+
             int parsed = sscanf(line, "%63s %d", name, &score);
             if (parsed >= 1) {
                 strncpy(rankingList[idx].name, name, sizeof(rankingList[idx].name) - 1);
@@ -76,7 +76,7 @@ void LoadRanking(void) {
     }
     fclose(f);
     rankingCount = idx;
-    
+
     for (int i = 0; i < rankingCount - 1; i++) {
         for (int j = i + 1; j < rankingCount; j++) {
             if (rankingList[j].score > rankingList[i].score) {
@@ -86,7 +86,7 @@ void LoadRanking(void) {
             }
         }
     }
-    
+
     for (int i = 0; i < rankingCount; i++) {
         rankingList[i].position = i + 1;
     }
@@ -110,7 +110,7 @@ static Rectangle btnBackRanking;
 
 void UpdateRanking(GameState *state) {
     btnBackRanking = (Rectangle){ 20, H - 50, 100, 35 };
-    
+
     Vector2 mouse = GetMousePosition();
     bool mousePressed = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 

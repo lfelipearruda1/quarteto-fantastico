@@ -4,13 +4,11 @@
 #include <string.h>
 #include <math.h>
 
-#define MAX_ENEMIES 12
-#define MAX_OBSTACLES 15
-#define MAX_ROCKS 3
+#define MAX_FIREBALLS 10
+#define MAX_ENEMIES 10
+#define MAX_OBSTACLES 10
 #define GROUND_Y 400
-#define MAP_LENGTH 8000
-#define MAX_ROCK_DISTANCE 400
-#define ENEMY_SPAWN_DISTANCE 600
+#define MAP_LENGTH 7000
 
 typedef struct {
     Vector2 position;
@@ -25,8 +23,7 @@ typedef struct {
     Vector2 position;
     bool active;
     float speed;
-    float startX;
-} Rock;
+} Fireball;
 
 typedef struct {
     Vector2 position;
@@ -44,7 +41,7 @@ typedef struct {
 
 typedef struct {
     GameCharacter player;
-    Rock rocks[MAX_ROCKS];
+    Fireball fireballs[MAX_FIREBALLS];
     Enemy enemies[MAX_ENEMIES];
     Obstacle obstacles[MAX_OBSTACLES];
     float cameraX;
@@ -56,27 +53,24 @@ typedef struct {
     Texture2D playerTexture;
     Texture2D platformTexture;
     Texture2D obstacleTexture;
-    Texture2D enemyTexture;
-    Texture2D heartTexture;
-} Level1Data;
+} LevelTochaData;
 
-static void ShootRock(Level1Data *data) {
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        if (!data->rocks[i].active) {
-            data->rocks[i].position = (Vector2){
+static void ShootFireball(LevelTochaData *data) {
+    for (int i = 0; i < MAX_FIREBALLS; i++) {
+        if (!data->fireballs[i].active) {
+            data->fireballs[i].position = (Vector2){
                 data->player.position.x + data->player.width,
                 data->player.position.y + data->player.height / 2
             };
-            data->rocks[i].startX = data->rocks[i].position.x;
-            data->rocks[i].active = true;
-            data->rocks[i].speed = 8.0f;
+            data->fireballs[i].active = true;
+            data->fireballs[i].speed = 10.0f;
             break;
         }
     }
 }
 
-static void InitLevel1(Level *level) {
-    Level1Data *data = (Level1Data*)malloc(sizeof(Level1Data));
+static void InitLevelTocha(Level *level) {
+    LevelTochaData *data = (LevelTochaData*)malloc(sizeof(LevelTochaData));
     level->data = data;
 
     data->gameWon = false;
@@ -85,12 +79,10 @@ static void InitLevel1(Level *level) {
     data->score = 0;
     data->cameraX = 0;
 
-    data->backgroundTexture = LoadTexture("assets/coisa/fundoicoisa.png");
-    data->playerTexture = LoadTexture("assets/coisa/coisa-correto.png");
-    data->platformTexture = LoadTexture("assets/coisa/plataforma-coisa.png");
-    data->obstacleTexture = LoadTexture("assets/coisa/obstaculo-coisa.png");
-    data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
-    data->heartTexture = LoadTexture("assets/coracao.png");
+    data->backgroundTexture = LoadTexture("assets/tocha-humana/fundo.png");
+    data->playerTexture = LoadTexture("assets/tocha-humana/tocha.png");
+    data->platformTexture = LoadTexture("assets/tocha-humana/plataforma.png");
+    data->obstacleTexture = LoadTexture("assets/tocha-humana/obstaculo.png");
 
     data->player.position = (Vector2){ 100, GROUND_Y - 110 };
     data->player.velocity = (Vector2){ 0, 0 };
@@ -99,29 +91,29 @@ static void InitLevel1(Level *level) {
     data->player.width = 90;
     data->player.height = 110;
 
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        data->rocks[i].active = false;
+    for (int i = 0; i < MAX_FIREBALLS; i++) {
+        data->fireballs[i].active = false;
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        data->enemies[i].position = (Vector2){ 600 + i * 700, GROUND_Y - 80 };
-        data->enemies[i].active = false;
-        data->enemies[i].speed = 1.5f + (float)(rand() % 100) / 100.0f;
+        data->enemies[i].position = (Vector2){ 700 + i * 650, GROUND_Y - 40 };
+        data->enemies[i].active = true;
+        data->enemies[i].speed = 2.0f + (float)(rand() % 100) / 100.0f;
         data->enemies[i].health = 1;
-        data->enemies[i].width = 80;
-        data->enemies[i].height = 80;
+        data->enemies[i].width = 40;
+        data->enemies[i].height = 40;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
-        float x = 500 + i * 550 + (float)(rand() % 150);
+        float x = 600 + i * 650 + (float)(rand() % 150);
         float size = 50 + (float)(rand() % 30);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
     }
 }
 
-static void UpdateLevel1(Level *level, GameState *state) {
-    Level1Data *data = (Level1Data*)level->data;
+static void UpdateLevelTocha(Level *level, GameState *state) {
+    LevelTochaData *data = (LevelTochaData*)level->data;
 
     if (data->gameWon || data->gameLost) {
         data->gameEndTimer += GetFrameTime();
@@ -166,7 +158,7 @@ static void UpdateLevel1(Level *level, GameState *state) {
     }
 
     if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER)) {
-        ShootRock(data);
+        ShootFireball(data);
     }
 
     data->player.velocity.y += 0.6f;
@@ -211,21 +203,12 @@ static void UpdateLevel1(Level *level, GameState *state) {
         }
     }
 
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        if (data->rocks[i].active) {
-            data->rocks[i].position.x += data->rocks[i].speed;
+    for (int i = 0; i < MAX_FIREBALLS; i++) {
+        if (data->fireballs[i].active) {
+            data->fireballs[i].position.x += data->fireballs[i].speed;
 
-            if (data->rocks[i].position.x - data->rocks[i].startX > MAX_ROCK_DISTANCE ||
-                data->rocks[i].position.x > data->cameraX + W + 50) {
-                data->rocks[i].active = false;
-            }
-        }
-    }
-
-    for (int i = 0; i < MAX_ENEMIES; i++) {
-        if (!data->enemies[i].active) {
-            if (data->player.position.x + ENEMY_SPAWN_DISTANCE >= data->enemies[i].position.x) {
-                data->enemies[i].active = true;
+            if (data->fireballs[i].position.x > data->cameraX + W + 50) {
+                data->fireballs[i].active = false;
             }
         }
     }
@@ -235,7 +218,8 @@ static void UpdateLevel1(Level *level, GameState *state) {
             data->enemies[i].position.x -= data->enemies[i].speed;
 
             if (data->enemies[i].position.x < data->cameraX - 100) {
-                data->enemies[i].active = false;
+                data->enemies[i].position.x = data->cameraX + W + 100;
+                data->enemies[i].active = true;
             }
 
             Rectangle enemyRect = {
@@ -253,18 +237,18 @@ static void UpdateLevel1(Level *level, GameState *state) {
                 }
             }
 
-            for (int j = 0; j < MAX_ROCKS; j++) {
-                if (data->rocks[j].active) {
-                    Rectangle rockRect = {
-                        data->rocks[j].position.x,
-                        data->rocks[j].position.y,
-                        10,
-                        10
+            for (int j = 0; j < MAX_FIREBALLS; j++) {
+                if (data->fireballs[j].active) {
+                    Rectangle fireballRect = {
+                        data->fireballs[j].position.x,
+                        data->fireballs[j].position.y,
+                        15,
+                        15
                     };
 
-                    if (CheckCollisionRecs(rockRect, enemyRect)) {
+                    if (CheckCollisionRecs(fireballRect, enemyRect)) {
                         data->enemies[i].health--;
-                        data->rocks[j].active = false;
+                        data->fireballs[j].active = false;
 
                         if (data->enemies[i].health <= 0) {
                             data->enemies[i].active = false;
@@ -287,10 +271,11 @@ static void UpdateLevel1(Level *level, GameState *state) {
     }
 }
 
-static void DrawLevel1(Level *level) {
-    Level1Data *data = (Level1Data*)level->data;
+static void DrawLevelTocha(Level *level) {
+    LevelTochaData *data = (LevelTochaData*)level->data;
 
-    ClearBackground(BLACK);
+    ClearBackground((Color){20, 10, 30, 255});
+
 
     float parallaxSpeed = 0.5f;
     float bgX = -(data->cameraX * parallaxSpeed);
@@ -338,50 +323,65 @@ static void DrawLevel1(Level *level) {
     };
     DrawTexturePro(data->playerTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
 
-    for (int i = 0; i < MAX_ROCKS; i++) {
-        if (data->rocks[i].active) {
+    for (int i = 0; i < MAX_FIREBALLS; i++) {
+        if (data->fireballs[i].active) {
             DrawCircle(
-                (int)(data->rocks[i].position.x - data->cameraX),
-                (int)data->rocks[i].position.y,
-                5,
-                GRAY
+                (int)(data->fireballs[i].position.x - data->cameraX),
+                (int)data->fireballs[i].position.y,
+                7,
+                ORANGE
+            );
+            DrawCircle(
+                (int)(data->fireballs[i].position.x - data->cameraX),
+                (int)data->fireballs[i].position.y,
+                4,
+                YELLOW
             );
         }
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
         if (data->enemies[i].active) {
-            Rectangle source = {0, 0, (float)data->enemyTexture.width, (float)data->enemyTexture.height};
-            Rectangle dest = {
+            Rectangle enemyDrawRect = {
                 data->enemies[i].position.x - data->cameraX,
                 data->enemies[i].position.y,
                 data->enemies[i].width,
                 data->enemies[i].height
             };
-            DrawTexturePro(data->enemyTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
+            DrawRectangleRec(enemyDrawRect, BLUE);
+            DrawRectangleLinesEx(enemyDrawRect, 2, DARKBLUE);
+
+            DrawCircle(
+                (int)(data->enemies[i].position.x - data->cameraX + 10),
+                (int)(data->enemies[i].position.y + 10),
+                3,
+                WHITE
+            );
+            DrawCircle(
+                (int)(data->enemies[i].position.x - data->cameraX + 25),
+                (int)(data->enemies[i].position.y + 10),
+                3, 
+                WHITE
+            );
         }
     }
 
-    for (int i = 0; i < data->player.health && i < 3; i++) {
-        Rectangle source = {0, 0, (float)data->heartTexture.width, (float)data->heartTexture.height};
-        Rectangle dest = {10 + i * 55, 10, 40, 40};
-        DrawTexturePro(data->heartTexture, source, dest, (Vector2){0, 0}, 0, WHITE);
-    }
-
-    DrawText(TextFormat("PONTOS: %d", data->score), 180, 20, 22, GOLD);
-    DrawText(TextFormat("DISTANCIA: %.0f/%.0f", data->player.position.x, (float)MAP_LENGTH), 450, 20, 20, WHITE);
+    DrawRectangle(0, 0, W, 40, (Color){0, 0, 0, 180});
+    DrawText(TextFormat("VIDAS: %d", data->player.health), 10, 10, 20, RED);
+    DrawText(TextFormat("PONTOS: %d", data->score), 200, 10, 20, GOLD);
+    DrawText(TextFormat("DISTANCIA: %.0f/%.0f", data->player.position.x, (float)MAP_LENGTH), 450, 10, 20, WHITE);
 
     float progress = data->player.position.x / MAP_LENGTH;
     DrawRectangle(10, H - 30, (int)(W - 20), 20, DARKGRAY);
-    DrawRectangle(10, H - 30, (int)((W - 20) * progress), 20, GREEN);
+    DrawRectangle(10, H - 30, (int)((W - 20) * progress), 20, ORANGE);
 
-    DrawText("WASD: Mover | W/ESPACO: Pular | E/ENTER: Atirar Pedra", 10, H - 60, 16, LIGHTGRAY);
+    DrawText("WASD: Mover | W/ESPACO: Voar | E/ENTER: Lancar Fogo", 10, H - 60, 16, LIGHTGRAY);
 
     if (data->gameWon) {
         DrawRectangle(0, 0, W, H, (Color){0, 0, 0, 180});
-        const char *winText = "VITORIA!";
+        const char *winText = "CHAMAS DA VITORIA!";
         int textWidth = MeasureText(winText, 60);
-        DrawText(winText, W/2 - textWidth/2, H/2 - 60, 60, GREEN);
+        DrawText(winText, W/2 - textWidth/2, H/2 - 60, 60, ORANGE);
 
         const char *scoreText = TextFormat("Pontuacao Final: %d", data->score);
         int scoreWidth = MeasureText(scoreText, 30);
@@ -392,7 +392,7 @@ static void DrawLevel1(Level *level) {
         DrawText(continueText, W/2 - continueWidth/2, H/2 + 80, 20, WHITE);
     } else if (data->gameLost) {
         DrawRectangle(0, 0, W, H, (Color){0, 0, 0, 180});
-        const char *loseText = "GAME OVER!";
+        const char *loseText = "CHAMA APAGADA!";
         int textWidth = MeasureText(loseText, 60);
         DrawText(loseText, W/2 - textWidth/2, H/2 - 60, 60, RED);
 
@@ -406,8 +406,8 @@ static void DrawLevel1(Level *level) {
     }
 }
 
-static void UnloadLevel1(Level *level) {
-    Level1Data *data = (Level1Data*)level->data;
+static void UnloadLevelTocha(Level *level) {
+    LevelTochaData *data = (LevelTochaData*)level->data;
     if (data->backgroundTexture.id > 0) {
         UnloadTexture(data->backgroundTexture);
     }
@@ -420,37 +420,19 @@ static void UnloadLevel1(Level *level) {
     if (data->obstacleTexture.id > 0) {
         UnloadTexture(data->obstacleTexture);
     }
-    if (data->enemyTexture.id > 0) {
-        UnloadTexture(data->enemyTexture);
-    }
-    if (data->heartTexture.id > 0) {
-        UnloadTexture(data->heartTexture);
-    }
 }
 
-Level* CreateLevelCoisa(void) {
+Level* CreateLevelTocha(void) {
     Level *level = (Level*)malloc(sizeof(Level));
-    level->type = LEVEL_COISA;
-    level->functions.init = InitLevel1;
-    level->functions.update = UpdateLevel1;
-    level->functions.draw = DrawLevel1;
-    level->functions.unload = UnloadLevel1;
+    level->type = LEVEL_TOCHA;
+    level->functions.init = InitLevelTocha;
+    level->functions.update = UpdateLevelTocha;
+    level->functions.draw = DrawLevelTocha;
+    level->functions.unload = UnloadLevelTocha;
     level->data = NULL;
 
     level->functions.init(level);
 
     return level;
-}
-
-void DestroyLevel(Level *level) {
-    if (level) {
-        if (level->functions.unload) {
-            level->functions.unload(level);
-        }
-        if (level->data) {
-            free(level->data);
-        }
-        free(level);
-    }
 }
 
