@@ -30,10 +30,10 @@ void InitSelect(void) {
         cards[i] = (Rectangle){ startX + (cardW + space) * i, top, cardW, cardH };
     }
 
-    cardImgs[0] = LoadTexture("assets/tocha-humana/foto-escolha-tocha.png");
-    cardImgs[1] = LoadTexture("assets/homem-elastico/foto-homem-elastico.png");
-    cardImgs[2] = LoadTexture("assets/mulher-invisivel/foto-mulher-invisel.png");
-    cardImgs[3] = LoadTexture("assets/coisa/foto-escolha-coisa.png");
+    cardImgs[0] = LoadTexture("assets/mulher-invisivel/foto-mulher-invisel.png");
+    cardImgs[1] = LoadTexture("assets/tocha-humana/foto-escolha-tocha.png");
+    cardImgs[2] = LoadTexture("assets/coisa/foto-escolha-coisa.png");
+    cardImgs[3] = LoadTexture("assets/homem-elastico/foto-homem-elastico.png");
 
     btnSave = (Rectangle){ W*0.5f + 140, 90, 120, 32 };
     btnRanking = (Rectangle){ W - 140, H - 50, 120, 40 };

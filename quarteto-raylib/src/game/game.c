@@ -14,19 +14,19 @@ void InitGame(int level) {
 
     switch (level) {
         case 0:
-            currentLevel = CreateLevelTocha();
-            break;
-        case 1:
-            currentLevel = CreateLevelHomemElastico();
-            break;
-        case 2:
             currentLevel = CreateLevelMulherInvisivel();
             break;
-        case 3:
+        case 1:
+            currentLevel = CreateLevelTocha();
+            break;
+        case 2:
             currentLevel = CreateLevelCoisa();
             break;
+        case 3:
+            currentLevel = CreateLevelHomemElastico();
+            break;
         default:
-            currentLevel = CreateLevelTocha();
+            currentLevel = CreateLevelMulherInvisivel();
             break;
     }
 }
