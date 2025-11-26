@@ -8,7 +8,6 @@ void InitGame(int level);
 void UpdateGame(GameState *state);
 void DrawGame(void);
 void UnloadGame(void);
-void DestroyLevel(Level *level);
 
 #endif
 

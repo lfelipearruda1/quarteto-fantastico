@@ -3,7 +3,7 @@
 #include "levels/level-homem-elastico.h"
 #include "levels/level-mulher-invisivel.h"
 #include "levels/level-coisa.h"
-#include <stdlib.h>
+#include <stddef.h>
 
 static Level *currentLevel = NULL;
 
