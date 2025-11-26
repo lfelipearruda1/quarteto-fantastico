@@ -1,18 +1,10 @@
-#include "raylib.h"
+#include "ranking.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #define W 960
 #define H 540
-
-typedef enum {
-    STATE_LOGO,
-    STATE_SELECT,
-    STATE_RANKING,
-    STATE_GAME
-} GameState;
 
 typedef struct {
     char name[32];

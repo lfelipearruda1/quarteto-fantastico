@@ -1,37 +1,14 @@
 #include "raylib.h"
-#include <stdbool.h>
+#include "logo/logo.h"
+#include "select/select.h"
+#include "ranking/ranking.h"
+#include "game/game.h"
+#include "player/player.h"
 
 #define W 960
 #define H 540
 
-typedef enum {
-    STATE_LOGO,
-    STATE_SELECT,
-    STATE_RANKING,
-    STATE_GAME
-} GameState;
-
-void InitLogo(void);
-void UpdateLogo(GameState *state);
-void DrawLogo(void);
-void UnloadLogo(void);
-
-void InitSelect(void);
-void UpdateSelect(GameState *state);
-void DrawSelect(void);
-void UnloadSelect(void);
-
-void InitRanking(void);
-void UpdateRanking(GameState *state);
-void DrawRanking(void);
 void FreeRanking(void);
-
-void InitGame(int level);
-void UpdateGame(GameState *state);
-void DrawGame(void);
-void UnloadGame(void);
-
-void FreePlayerList(void);
 
 int main(void) {
     InitWindow(W, H, "Quarteto Fantastico");

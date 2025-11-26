@@ -16,3 +16,6 @@ dasda 0
 dasda 0
 das 0
 luiz 0
+Luiz 0
+dadada 0
+JP 800
