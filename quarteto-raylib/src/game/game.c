@@ -43,9 +43,12 @@ void DrawGame(void) {
     }
 }
 
-void UnloadGame(void) {
-    if (currentLevel != NULL) {
-        DestroyLevel(currentLevel);
-        currentLevel = NULL;
+void DestroyLevel(Level *level) {
+    if (!level) return;
+
+    if (level->functions.unload) {
+        level->functions.unload(level);
     }
+
+    free(level);
 }
