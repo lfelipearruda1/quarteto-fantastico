@@ -45,22 +45,34 @@ typedef struct {
     Texture2D obstacleTexture;
     Texture2D heartTexture;
     Texture2D playerRunning[4];
+    Texture2D playerRunningLeft[4];
     Texture2D playerJumping;
+    Texture2D playerJumpingLeft;
     Texture2D playerAttacking;
+    Texture2D playerAttackingLeft;
     Texture2D playerCrouching;
+    Texture2D playerCrouchingLeft;
     Texture2D enemyTexture;
 } LevelElasticoData;
 
 static void ShootPunch(LevelElasticoData *data) {
     for (int i = 0; i < MAX_PUNCHES; i++) {
         if (!data->punches[i].active) {
-            data->punches[i].position = (Vector2){
-                data->player.position.x + data->player.width,
-                data->player.position.y + data->player.height / 2
-            };
+            if (data->player.facingRight) {
+                data->punches[i].position = (Vector2){
+                    data->player.position.x + data->player.width,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->punches[i].speed = 9.0f;
+            } else {
+                data->punches[i].position = (Vector2){
+                    data->player.position.x,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->punches[i].speed = -9.0f;
+            }
             data->punches[i].startX = data->punches[i].position.x;
             data->punches[i].active = true;
-            data->punches[i].speed = 9.0f;
             data->punches[i].extension = 0;
             
             data->isAttacking = true;
@@ -92,9 +104,16 @@ static void InitLevelElastico(Level *level) {
     data->playerRunning[1] = LoadTexture("assets/homem-elastico/correndo-2.png");
     data->playerRunning[2] = LoadTexture("assets/homem-elastico/correndo-3.png");
     data->playerRunning[3] = LoadTexture("assets/homem-elastico/correndo-4.png");
+    data->playerRunningLeft[0] = LoadTexture("assets/homem-elastico/correndo-1 (1).png");
+    data->playerRunningLeft[1] = LoadTexture("assets/homem-elastico/correndo-2 (1).png");
+    data->playerRunningLeft[2] = LoadTexture("assets/homem-elastico/correndo-3 (1).png");
+    data->playerRunningLeft[3] = LoadTexture("assets/homem-elastico/correndo-4 (1).png");
     data->playerJumping = LoadTexture("assets/homem-elastico/pulando-1.png");
+    data->playerJumpingLeft = LoadTexture("assets/homem-elastico/pulando-1 (1).png");
     data->playerAttacking = LoadTexture("assets/homem-elastico/atacando-1.png");
+    data->playerAttackingLeft = LoadTexture("assets/homem-elastico/atacando-1 (1).png");
     data->playerCrouching = LoadTexture("assets/homem-elastico/agachado-1.png");
+    data->playerCrouchingLeft = LoadTexture("assets/homem-elastico/agachado-1 (1).png");
 
     data->player.position = (Vector2){ 100, GROUND_Y - 110 };
     data->player.velocity = (Vector2){ 0, 0 };
@@ -103,6 +122,7 @@ static void InitLevelElastico(Level *level) {
     data->player.width = 90;
     data->player.height = 110;
     data->player.invulnerabilityTimer = 0;
+    data->player.facingRight = true;
     
     data->currentAnimation = ANIM_IDLE;
     data->animFrame = 0;
@@ -157,6 +177,7 @@ static void UpdateLevelElastico(Level *level, GameState *state) {
 
     CommonApplyGravity(&data->player);
     CommonCheckGroundCollision(&data->player, GROUND_Y);
+    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
 
     if (!data->isAttacking) {
         if (!data->player.onGround) {
@@ -188,15 +209,16 @@ static void UpdateLevelElastico(Level *level, GameState *state) {
         if (data->animFrame >= maxFrames) data->animFrame = 0;
     }
 
-    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
-
     for (int i = 0; i < MAX_PUNCHES; i++) {
         if (data->punches[i].active) {
             data->punches[i].position.x += data->punches[i].speed;
-            data->punches[i].extension = data->punches[i].position.x - data->punches[i].startX;
+            data->punches[i].extension = (data->punches[i].speed > 0) ?
+                                         (data->punches[i].position.x - data->punches[i].startX) :
+                                         (data->punches[i].startX - data->punches[i].position.x);
 
             if (data->punches[i].extension > MAX_PUNCH_DISTANCE ||
-                data->punches[i].position.x > data->cameraX + W + 50) {
+                data->punches[i].position.x > data->cameraX + W + 50 ||
+                data->punches[i].position.x < data->cameraX - 50) {
                 data->punches[i].active = false;
             }
         }
@@ -254,17 +276,32 @@ static void DrawLevelElastico(Level *level) {
     CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, data->obstacleTexture, data->cameraX);
 
     Texture2D currentTexture = data->playerRunning[0];
-    switch (data->currentAnimation) {
-        case ANIM_IDLE: 
-        case ANIM_RUNNING: 
-            currentTexture = data->playerRunning[data->animFrame % 4]; 
-            break;
-        case ANIM_JUMPING: 
-            currentTexture = data->playerJumping; 
-            break;
-        case ANIM_ATTACKING: 
-            currentTexture = data->playerAttacking; 
-            break;
+    if (data->player.facingRight) {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: 
+            case ANIM_RUNNING: 
+                currentTexture = data->playerRunning[data->animFrame % 4]; 
+                break;
+            case ANIM_JUMPING: 
+                currentTexture = data->playerJumping; 
+                break;
+            case ANIM_ATTACKING: 
+                currentTexture = data->playerAttacking; 
+                break;
+        }
+    } else {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: 
+            case ANIM_RUNNING: 
+                currentTexture = data->playerRunningLeft[data->animFrame % 4]; 
+                break;
+            case ANIM_JUMPING: 
+                currentTexture = data->playerJumpingLeft; 
+                break;
+            case ANIM_ATTACKING: 
+                currentTexture = data->playerAttackingLeft; 
+                break;
+        }
     }
 
     Rectangle source = {0, 0, (float)currentTexture.width, (float)currentTexture.height};
@@ -279,11 +316,19 @@ static void DrawLevelElastico(Level *level) {
     for (int i = 0; i < MAX_PUNCHES; i++) {
         if (data->punches[i].active) {
             float width = 10 + (data->punches[i].extension / MAX_PUNCH_DISTANCE) * 40;
-            DrawRectangle(
-                (int)(data->punches[i].startX - data->cameraX),
-                (int)(data->punches[i].position.y - 5),
-                (int)width, 10, BLUE
-            );
+            if (data->punches[i].speed > 0) {
+                DrawRectangle(
+                    (int)(data->punches[i].startX - data->cameraX),
+                    (int)(data->punches[i].position.y - 5),
+                    (int)width, 10, BLUE
+                );
+            } else {
+                DrawRectangle(
+                    (int)(data->punches[i].position.x - data->cameraX),
+                    (int)(data->punches[i].position.y - 5),
+                    (int)width, 10, BLUE
+                );
+            }
             DrawCircle(
                 (int)(data->punches[i].position.x - data->cameraX),
                 (int)data->punches[i].position.y,
@@ -321,10 +366,14 @@ static void UnloadLevelElastico(Level *level) {
     
     for (int i = 0; i < 4; i++) {
         if (data->playerRunning[i].id > 0) UnloadTexture(data->playerRunning[i]);
+        if (data->playerRunningLeft[i].id > 0) UnloadTexture(data->playerRunningLeft[i]);
     }
     if (data->playerJumping.id > 0) UnloadTexture(data->playerJumping);
+    if (data->playerJumpingLeft.id > 0) UnloadTexture(data->playerJumpingLeft);
     if (data->playerAttacking.id > 0) UnloadTexture(data->playerAttacking);
+    if (data->playerAttackingLeft.id > 0) UnloadTexture(data->playerAttackingLeft);
     if (data->playerCrouching.id > 0) UnloadTexture(data->playerCrouching);
+    if (data->playerCrouchingLeft.id > 0) UnloadTexture(data->playerCrouchingLeft);
 }
 
 Level* CreateLevelHomemElastico(void) {

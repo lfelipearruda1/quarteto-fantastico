@@ -45,10 +45,15 @@ typedef struct {
     Texture2D obstacleTexture;
     Texture2D heartTexture;
     Texture2D playerIdle;
+    Texture2D playerIdleLeft;
     Texture2D playerRunning[3];
+    Texture2D playerRunningLeft[3];
     Texture2D playerJumping;
+    Texture2D playerJumpingLeft;
     Texture2D playerAttacking[2];
+    Texture2D playerAttackingLeft[2];
     Texture2D playerCrouching;
+    Texture2D playerCrouchingLeft;
     Texture2D rockTexture;
     Texture2D enemyTexture;
 } Level1Data;
@@ -56,13 +61,21 @@ typedef struct {
 static void ShootRock(Level1Data *data) {
     for (int i = 0; i < MAX_ROCKS; i++) {
         if (!data->rocks[i].active) {
-            data->rocks[i].position = (Vector2){
-                data->player.position.x + data->player.width,
-                data->player.position.y + data->player.height / 2
-            };
+            if (data->player.facingRight) {
+                data->rocks[i].position = (Vector2){
+                    data->player.position.x + data->player.width,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->rocks[i].speed = 8.0f;
+            } else {
+                data->rocks[i].position = (Vector2){
+                    data->player.position.x,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->rocks[i].speed = -8.0f;
+            }
             data->rocks[i].startX = data->rocks[i].position.x;
             data->rocks[i].active = true;
-            data->rocks[i].speed = 8.0f;
             data->rocks[i].rotation = 0;
             
             data->isAttacking = true;
@@ -91,13 +104,21 @@ static void InitLevel1(Level *level) {
     data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
 
     data->playerIdle = LoadTexture("assets/coisa/parado.png");
+    data->playerIdleLeft = LoadTexture("assets/coisa/parado (1).png");
     data->playerRunning[0] = LoadTexture("assets/coisa/correndo-1.png");
     data->playerRunning[1] = LoadTexture("assets/coisa/correndo-2.png");
     data->playerRunning[2] = LoadTexture("assets/coisa/correndo-3.png");
+    data->playerRunningLeft[0] = LoadTexture("assets/coisa/correndo-1 (1).png");
+    data->playerRunningLeft[1] = LoadTexture("assets/coisa/correndo-2 (1).png");
+    data->playerRunningLeft[2] = LoadTexture("assets/coisa/correndo-3 (1).png");
     data->playerJumping = LoadTexture("assets/coisa/pulando-1.png");
+    data->playerJumpingLeft = LoadTexture("assets/coisa/pulando-1.png");
     data->playerAttacking[0] = LoadTexture("assets/coisa/atacando-1.png");
     data->playerAttacking[1] = LoadTexture("assets/coisa/atacando-2.png");
+    data->playerAttackingLeft[0] = LoadTexture("assets/coisa/atacando-1 (1).png");
+    data->playerAttackingLeft[1] = LoadTexture("assets/coisa/atacando-2 (1).png");
     data->playerCrouching = LoadTexture("assets/coisa/agachando.png");
+    data->playerCrouchingLeft = LoadTexture("assets/coisa/agachando (1).png");
     data->rockTexture = LoadTexture("assets/coisa/pedra.png");
 
     data->player.position = (Vector2){ 100, GROUND_Y - 110 };
@@ -107,6 +128,7 @@ static void InitLevel1(Level *level) {
     data->player.width = 90;
     data->player.height = 110;
     data->player.invulnerabilityTimer = 0;
+    data->player.facingRight = true;
     
     data->currentAnimation = ANIM_IDLE;
     data->animFrame = 0;
@@ -161,6 +183,7 @@ static void UpdateLevel1(Level *level, GameState *state) {
 
     CommonApplyGravity(&data->player);
     CommonCheckGroundCollision(&data->player, GROUND_Y);
+    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
 
     if (!data->isAttacking) {
         if (!data->player.onGround) {
@@ -193,14 +216,16 @@ static void UpdateLevel1(Level *level, GameState *state) {
         if (data->animFrame >= maxFrames) data->animFrame = 0;
     }
 
-    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
-
     for (int i = 0; i < MAX_ROCKS; i++) {
         if (data->rocks[i].active) {
             data->rocks[i].position.x += data->rocks[i].speed;
-            data->rocks[i].rotation += 5.0f;
-            if (data->rocks[i].position.x - data->rocks[i].startX > MAX_ROCK_DISTANCE ||
-                data->rocks[i].position.x > data->cameraX + W + 50) {
+            data->rocks[i].rotation += (data->rocks[i].speed > 0) ? 5.0f : -5.0f;
+            float distance = (data->rocks[i].speed > 0) ? 
+                            (data->rocks[i].position.x - data->rocks[i].startX) : 
+                            (data->rocks[i].startX - data->rocks[i].position.x);
+            if (distance > MAX_ROCK_DISTANCE ||
+                data->rocks[i].position.x > data->cameraX + W + 50 ||
+                data->rocks[i].position.x < data->cameraX - 50) {
                 data->rocks[i].active = false;
             }
         }
@@ -258,11 +283,20 @@ static void DrawLevel1(Level *level) {
     CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, data->obstacleTexture, data->cameraX);
 
     Texture2D currentTexture = data->playerIdle;
-    switch (data->currentAnimation) {
-        case ANIM_IDLE: currentTexture = data->playerIdle; break;
-        case ANIM_RUNNING: currentTexture = data->playerRunning[data->animFrame % 3]; break;
-        case ANIM_JUMPING: currentTexture = data->playerJumping; break;
-        case ANIM_ATTACKING: currentTexture = data->playerAttacking[data->animFrame % 2]; break;
+    if (data->player.facingRight) {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: currentTexture = data->playerIdle; break;
+            case ANIM_RUNNING: currentTexture = data->playerRunning[data->animFrame % 3]; break;
+            case ANIM_JUMPING: currentTexture = data->playerJumping; break;
+            case ANIM_ATTACKING: currentTexture = data->playerAttacking[data->animFrame % 2]; break;
+        }
+    } else {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: currentTexture = data->playerIdleLeft; break;
+            case ANIM_RUNNING: currentTexture = data->playerRunningLeft[data->animFrame % 3]; break;
+            case ANIM_JUMPING: currentTexture = data->playerJumpingLeft; break;
+            case ANIM_ATTACKING: currentTexture = data->playerAttackingLeft[data->animFrame % 2]; break;
+        }
     }
 
     Rectangle source = {0, 0, (float)currentTexture.width, (float)currentTexture.height};
@@ -309,15 +343,20 @@ static void UnloadLevel1(Level *level) {
     if (data->heartTexture.id > 0) UnloadTexture(data->heartTexture);
     if (data->enemyTexture.id > 0) UnloadTexture(data->enemyTexture);
     if (data->playerIdle.id > 0) UnloadTexture(data->playerIdle);
+    if (data->playerIdleLeft.id > 0) UnloadTexture(data->playerIdleLeft);
     
     for (int i = 0; i < 3; i++) {
         if (data->playerRunning[i].id > 0) UnloadTexture(data->playerRunning[i]);
+        if (data->playerRunningLeft[i].id > 0) UnloadTexture(data->playerRunningLeft[i]);
     }
     if (data->playerJumping.id > 0) UnloadTexture(data->playerJumping);
+    if (data->playerJumpingLeft.id > 0) UnloadTexture(data->playerJumpingLeft);
     for (int i = 0; i < 2; i++) {
         if (data->playerAttacking[i].id > 0) UnloadTexture(data->playerAttacking[i]);
+        if (data->playerAttackingLeft[i].id > 0) UnloadTexture(data->playerAttackingLeft[i]);
     }
     if (data->playerCrouching.id > 0) UnloadTexture(data->playerCrouching);
+    if (data->playerCrouchingLeft.id > 0) UnloadTexture(data->playerCrouchingLeft);
     if (data->rockTexture.id > 0) UnloadTexture(data->rockTexture);
 }
 

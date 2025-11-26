@@ -44,9 +44,13 @@ typedef struct {
     Texture2D obstacleTexture;
     Texture2D heartTexture;
     Texture2D playerIdle;
+    Texture2D playerIdleLeft;
     Texture2D playerRunning[3];
+    Texture2D playerRunningLeft[3];
     Texture2D playerJumping[3];
+    Texture2D playerJumpingLeft[3];
     Texture2D playerAttacking[2];
+    Texture2D playerAttackingLeft[2];
     Texture2D fireballTexture;
     Texture2D enemyTexture;
 } LevelTochaData;
@@ -54,12 +58,20 @@ typedef struct {
 static void ShootFireball(LevelTochaData *data) {
     for (int i = 0; i < MAX_FIREBALLS; i++) {
         if (!data->fireballs[i].active) {
-            data->fireballs[i].position = (Vector2){
-                data->player.position.x + data->player.width,
-                data->player.position.y + data->player.height / 2
-            };
+            if (data->player.facingRight) {
+                data->fireballs[i].position = (Vector2){
+                    data->player.position.x + data->player.width,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->fireballs[i].speed = 12.0f;
+            } else {
+                data->fireballs[i].position = (Vector2){
+                    data->player.position.x,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->fireballs[i].speed = -12.0f;
+            }
             data->fireballs[i].active = true;
-            data->fireballs[i].speed = 12.0f;
             data->fireballs[i].animFrame = 0;
             data->fireballs[i].animTimer = 0;
             
@@ -89,14 +101,23 @@ static void InitLevelTocha(Level *level) {
     data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
 
     data->playerIdle = LoadTexture("assets/tocha-humana/parado-1-Photoroom.png");
-    data->playerRunning[0] = LoadTexture("assets/tocha-humana/correndo-1.png");
-    data->playerRunning[1] = LoadTexture("assets/tocha-humana/correndo-2.png");
-    data->playerRunning[2] = LoadTexture("assets/tocha-humana/correndo-3.png");
+    data->playerIdleLeft = LoadTexture("assets/tocha-humana/parado-1-Photoroom (1).png");
+    data->playerRunning[0] = LoadTexture("assets/tocha-humana/correndo-2.png");
+    data->playerRunning[1] = LoadTexture("assets/tocha-humana/correndo-3.png");
+    data->playerRunning[2] = LoadTexture("assets/tocha-humana/correndo-2.png");
+    data->playerRunningLeft[0] = LoadTexture("assets/tocha-humana/correndo-1.png");
+    data->playerRunningLeft[1] = LoadTexture("assets/tocha-humana/correndo-2 (1).png");
+    data->playerRunningLeft[2] = LoadTexture("assets/tocha-humana/correndo-3 (1).png");
     data->playerJumping[0] = LoadTexture("assets/tocha-humana/pulando-1-Photoroom.png");
     data->playerJumping[1] = LoadTexture("assets/tocha-humana/pulando-2-Photoroom.png");
     data->playerJumping[2] = LoadTexture("assets/tocha-humana/pulando-3-Photoroom.png");
+    data->playerJumpingLeft[0] = LoadTexture("assets/tocha-humana/pulando-1-Photoroom (1).png");
+    data->playerJumpingLeft[1] = LoadTexture("assets/tocha-humana/pulando-2-Photoroom (1).png");
+    data->playerJumpingLeft[2] = LoadTexture("assets/tocha-humana/pulando-3-Photoroom (1).png");
     data->playerAttacking[0] = LoadTexture("assets/tocha-humana/atacando-1.png");
     data->playerAttacking[1] = LoadTexture("assets/tocha-humana/atacando-2-Photoroom.png");
+    data->playerAttackingLeft[0] = LoadTexture("assets/tocha-humana/atacando-1 (1).png");
+    data->playerAttackingLeft[1] = LoadTexture("assets/tocha-humana/atacando-2-Photoroom (1).png");
     data->fireballTexture = LoadTexture("assets/tocha-humana/bola-de-fogo-Photoroom.png");
 
     data->player.position = (Vector2){ 100, GROUND_Y - 110 };
@@ -106,6 +127,7 @@ static void InitLevelTocha(Level *level) {
     data->player.width = 90;
     data->player.height = 110;
     data->player.invulnerabilityTimer = 0;
+    data->player.facingRight = true;
     
     data->currentAnimation = ANIM_IDLE;
     data->animFrame = 0;
@@ -160,6 +182,7 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
 
     CommonApplyGravity(&data->player);
     CommonCheckGroundCollision(&data->player, GROUND_Y);
+    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
 
     if (!data->isAttacking) {
         if (!data->player.onGround) {
@@ -192,8 +215,6 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
         if (data->animFrame >= maxFrames) data->animFrame = 0;
     }
 
-    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
-
     for (int i = 0; i < MAX_FIREBALLS; i++) {
         if (data->fireballs[i].active) {
             data->fireballs[i].position.x += data->fireballs[i].speed;
@@ -204,7 +225,8 @@ static void UpdateLevelTocha(Level *level, GameState *state) {
                 data->fireballs[i].animFrame = (data->fireballs[i].animFrame + 1) % 4;
             }
 
-            if (data->fireballs[i].position.x > data->cameraX + W + 50) {
+            if (data->fireballs[i].position.x > data->cameraX + W + 50 ||
+                data->fireballs[i].position.x < data->cameraX - 50) {
                 data->fireballs[i].active = false;
             }
         }
@@ -262,11 +284,20 @@ static void DrawLevelTocha(Level *level) {
     CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, data->obstacleTexture, data->cameraX);
 
     Texture2D currentTexture = data->playerIdle;
-    switch (data->currentAnimation) {
-        case ANIM_IDLE: currentTexture = data->playerIdle; break;
-        case ANIM_RUNNING: currentTexture = data->playerRunning[data->animFrame % 3]; break;
-        case ANIM_JUMPING: currentTexture = data->playerJumping[data->animFrame % 3]; break;
-        case ANIM_ATTACKING: currentTexture = data->playerAttacking[data->animFrame % 2]; break;
+    if (data->player.facingRight) {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: currentTexture = data->playerIdle; break;
+            case ANIM_RUNNING: currentTexture = data->playerRunning[data->animFrame % 3]; break;
+            case ANIM_JUMPING: currentTexture = data->playerJumping[data->animFrame % 3]; break;
+            case ANIM_ATTACKING: currentTexture = data->playerAttacking[data->animFrame % 2]; break;
+        }
+    } else {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: currentTexture = data->playerIdleLeft; break;
+            case ANIM_RUNNING: currentTexture = data->playerRunningLeft[data->animFrame % 3]; break;
+            case ANIM_JUMPING: currentTexture = data->playerJumpingLeft[data->animFrame % 3]; break;
+            case ANIM_ATTACKING: currentTexture = data->playerAttackingLeft[data->animFrame % 2]; break;
+        }
     }
 
     Rectangle source = {0, 0, (float)currentTexture.width, (float)currentTexture.height};
@@ -314,13 +345,17 @@ static void UnloadLevelTocha(Level *level) {
     if (data->heartTexture.id > 0) UnloadTexture(data->heartTexture);
     if (data->enemyTexture.id > 0) UnloadTexture(data->enemyTexture);
     if (data->playerIdle.id > 0) UnloadTexture(data->playerIdle);
+    if (data->playerIdleLeft.id > 0) UnloadTexture(data->playerIdleLeft);
     
     for (int i = 0; i < 3; i++) {
         if (data->playerRunning[i].id > 0) UnloadTexture(data->playerRunning[i]);
+        if (data->playerRunningLeft[i].id > 0) UnloadTexture(data->playerRunningLeft[i]);
         if (data->playerJumping[i].id > 0) UnloadTexture(data->playerJumping[i]);
+        if (data->playerJumpingLeft[i].id > 0) UnloadTexture(data->playerJumpingLeft[i]);
     }
     for (int i = 0; i < 2; i++) {
         if (data->playerAttacking[i].id > 0) UnloadTexture(data->playerAttacking[i]);
+        if (data->playerAttackingLeft[i].id > 0) UnloadTexture(data->playerAttackingLeft[i]);
     }
     if (data->fireballTexture.id > 0) UnloadTexture(data->fireballTexture);
 }

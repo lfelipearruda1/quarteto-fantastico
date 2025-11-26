@@ -39,6 +39,7 @@ typedef struct {
     float width;
     float height;
     float invulnerabilityTimer;
+    bool facingRight;
 } BaseCharacter;
 
 typedef struct {

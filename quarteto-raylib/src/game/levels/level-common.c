@@ -41,9 +41,11 @@ void CommonUpdateHorizontalMovement(BaseCharacter *player) {
     player->velocity.x = 0;
     if (IsKeyDown(KEY_A)) {
         player->velocity.x = -5.0f;
+        player->facingRight = false;
     }
     if (IsKeyDown(KEY_D)) {
         player->velocity.x = 5.0f;
+        player->facingRight = true;
     }
     player->position.x += player->velocity.x;
 }

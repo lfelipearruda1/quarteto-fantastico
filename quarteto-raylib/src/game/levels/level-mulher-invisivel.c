@@ -45,9 +45,13 @@ typedef struct {
     Texture2D obstacleTexture;
     Texture2D heartTexture;
     Texture2D playerIdle;
+    Texture2D playerIdleLeft;
     Texture2D playerRunning[4];
+    Texture2D playerRunningLeft[4];
     Texture2D playerAttacking;
+    Texture2D playerAttackingLeft;
     Texture2D playerCrouching;
+    Texture2D playerCrouchingLeft;
     Texture2D projectileTexture;
     Texture2D enemyTexture;
 } LevelInvisivelData;
@@ -55,12 +59,20 @@ typedef struct {
 static void ShootProjectile(LevelInvisivelData *data) {
     for (int i = 0; i < MAX_PROJECTILES; i++) {
         if (!data->projectiles[i].active) {
-            data->projectiles[i].position = (Vector2){
-                data->player.position.x + data->player.width,
-                data->player.position.y + data->player.height / 2
-            };
+            if (data->player.facingRight) {
+                data->projectiles[i].position = (Vector2){
+                    data->player.position.x + data->player.width,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->projectiles[i].speed = 11.0f;
+            } else {
+                data->projectiles[i].position = (Vector2){
+                    data->player.position.x,
+                    data->player.position.y + data->player.height / 2
+                };
+                data->projectiles[i].speed = -11.0f;
+            }
             data->projectiles[i].active = true;
-            data->projectiles[i].speed = 11.0f;
             data->projectiles[i].animFrame = 0;
             data->projectiles[i].animTimer = 0;
             
@@ -90,12 +102,19 @@ static void InitLevelInvisivel(Level *level) {
     data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
 
     data->playerIdle = LoadTexture("assets/mulher-invisivel/parado.png");
+    data->playerIdleLeft = LoadTexture("assets/mulher-invisivel/parado (1).png");
     data->playerRunning[0] = LoadTexture("assets/mulher-invisivel/correndo-1.png");
     data->playerRunning[1] = LoadTexture("assets/mulher-invisivel/correndo-2.png");
     data->playerRunning[2] = LoadTexture("assets/mulher-invisivel/correndo-3.png");
     data->playerRunning[3] = LoadTexture("assets/mulher-invisivel/correndo-4.png");
+    data->playerRunningLeft[0] = LoadTexture("assets/mulher-invisivel/correndo-1 (1).png");
+    data->playerRunningLeft[1] = LoadTexture("assets/mulher-invisivel/correndo-2 (1).png");
+    data->playerRunningLeft[2] = LoadTexture("assets/mulher-invisivel/correndo-3 (1).png");
+    data->playerRunningLeft[3] = LoadTexture("assets/mulher-invisivel/correndo-4 (1).png");
     data->playerAttacking = LoadTexture("assets/mulher-invisivel/atacando.png");
+    data->playerAttackingLeft = LoadTexture("assets/mulher-invisivel/atacando (1).png");
     data->playerCrouching = LoadTexture("assets/mulher-invisivel/agachado.png");
+    data->playerCrouchingLeft = LoadTexture("assets/mulher-invisivel/agachado (1).png");
     data->projectileTexture = LoadTexture("assets/mulher-invisivel/bolha.png");
 
     data->player.position = (Vector2){ 100, GROUND_Y - 110 };
@@ -105,6 +124,7 @@ static void InitLevelInvisivel(Level *level) {
     data->player.width = 90;
     data->player.height = 110;
     data->player.invulnerabilityTimer = 0;
+    data->player.facingRight = true;
     
     data->currentAnimation = ANIM_IDLE;
     data->animFrame = 0;
@@ -173,6 +193,7 @@ static void UpdateLevelInvisivel(Level *level, GameState *state) {
 
     CommonApplyGravity(&data->player);
     CommonCheckGroundCollision(&data->player, GROUND_Y);
+    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
 
     if (!data->isAttacking) {
         if (data->player.velocity.x != 0) {
@@ -197,8 +218,6 @@ static void UpdateLevelInvisivel(Level *level, GameState *state) {
         if (data->animFrame >= maxFrames) data->animFrame = 0;
     }
 
-    CommonCheckObstacleCollision(&data->player, data->obstacles, MAX_OBSTACLES);
-
     for (int i = 0; i < MAX_PROJECTILES; i++) {
         if (data->projectiles[i].active) {
             data->projectiles[i].position.x += data->projectiles[i].speed;
@@ -209,7 +228,8 @@ static void UpdateLevelInvisivel(Level *level, GameState *state) {
                 data->projectiles[i].animFrame = (data->projectiles[i].animFrame + 1) % 4;
             }
 
-            if (data->projectiles[i].position.x > data->cameraX + W + 50) {
+            if (data->projectiles[i].position.x > data->cameraX + W + 50 ||
+                data->projectiles[i].position.x < data->cameraX - 50) {
                 data->projectiles[i].active = false;
             }
         }
@@ -267,16 +287,30 @@ static void DrawLevelInvisivel(Level *level) {
     CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, data->obstacleTexture, data->cameraX);
 
     Texture2D currentTexture = data->playerIdle;
-    switch (data->currentAnimation) {
-        case ANIM_IDLE: 
-            currentTexture = data->playerIdle; 
-            break;
-        case ANIM_RUNNING: 
-            currentTexture = data->playerRunning[data->animFrame % 4]; 
-            break;
-        case ANIM_ATTACKING: 
-            currentTexture = data->playerAttacking; 
-            break;
+    if (data->player.facingRight) {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: 
+                currentTexture = data->playerIdle; 
+                break;
+            case ANIM_RUNNING: 
+                currentTexture = data->playerRunning[data->animFrame % 4]; 
+                break;
+            case ANIM_ATTACKING: 
+                currentTexture = data->playerAttacking; 
+                break;
+        }
+    } else {
+        switch (data->currentAnimation) {
+            case ANIM_IDLE: 
+                currentTexture = data->playerIdleLeft; 
+                break;
+            case ANIM_RUNNING: 
+                currentTexture = data->playerRunningLeft[data->animFrame % 4]; 
+                break;
+            case ANIM_ATTACKING: 
+                currentTexture = data->playerAttackingLeft; 
+                break;
+        }
     }
 
     Rectangle source = {0, 0, (float)currentTexture.width, (float)currentTexture.height};
@@ -340,12 +374,16 @@ static void UnloadLevelInvisivel(Level *level) {
     if (data->heartTexture.id > 0) UnloadTexture(data->heartTexture);
     if (data->enemyTexture.id > 0) UnloadTexture(data->enemyTexture);
     if (data->playerIdle.id > 0) UnloadTexture(data->playerIdle);
+    if (data->playerIdleLeft.id > 0) UnloadTexture(data->playerIdleLeft);
     
     for (int i = 0; i < 4; i++) {
         if (data->playerRunning[i].id > 0) UnloadTexture(data->playerRunning[i]);
+        if (data->playerRunningLeft[i].id > 0) UnloadTexture(data->playerRunningLeft[i]);
     }
     if (data->playerAttacking.id > 0) UnloadTexture(data->playerAttacking);
+    if (data->playerAttackingLeft.id > 0) UnloadTexture(data->playerAttackingLeft);
     if (data->playerCrouching.id > 0) UnloadTexture(data->playerCrouching);
+    if (data->playerCrouchingLeft.id > 0) UnloadTexture(data->playerCrouchingLeft);
     if (data->projectileTexture.id > 0) UnloadTexture(data->projectileTexture);
 }
 
