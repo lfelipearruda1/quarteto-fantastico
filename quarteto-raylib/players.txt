@@ -18,3 +18,6 @@ asdas 0
 dasdasdfa 1400
 dadasdas 1400
 sdasdas 0
+sdasda 0
+asdasdas 1400
+asdas 0

@@ -3,7 +3,7 @@
 #include "levels/level-homem-elastico.h"
 #include "levels/level-mulher-invisivel.h"
 #include "levels/level-coisa.h"
-#include <stddef.h>
+#include <stdlib.h>
 
 static Level *currentLevel = NULL;
 
@@ -43,12 +43,9 @@ void DrawGame(void) {
     }
 }
 
-void DestroyLevel(Level *level) {
-    if (!level) return;
-
-    if (level->functions.unload) {
-        level->functions.unload(level);
+void UnloadGame(void) {
+    if (currentLevel != NULL) {
+        DestroyLevel(currentLevel);
+        currentLevel = NULL;
     }
-
-    free(level);
 }
