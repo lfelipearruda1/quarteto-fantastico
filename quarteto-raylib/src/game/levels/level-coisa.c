@@ -2,11 +2,11 @@
 #include <stdlib.h>
 
 #define MAX_ROCKS 3
-#define MAX_ENEMIES 12
-#define MAX_OBSTACLES 15
-#define MAP_LENGTH 8000
+#define MAX_ENEMIES 16
+#define MAX_OBSTACLES 22
+#define MAP_LENGTH 10000
 #define MAX_ROCK_DISTANCE 400
-#define ENEMY_SPAWN_DISTANCE 600
+#define ENEMY_SPAWN_DISTANCE 550
 
 typedef enum {
     ANIM_IDLE,
@@ -141,16 +141,16 @@ static void InitLevel1(Level *level) {
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        data->enemies[i].position = (Vector2){ 600 + i * 700, GROUND_Y - 80 };
+        data->enemies[i].position = (Vector2){ 650 + i * 600, GROUND_Y - 80 };
         data->enemies[i].active = false;
-        data->enemies[i].speed = 1.5f + (float)(rand() % 100) / 100.0f;
+        data->enemies[i].speed = 1.8f + (float)(rand() % 90) / 100.0f;
         data->enemies[i].width = 80;
         data->enemies[i].height = 80;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
-        float x = 500 + i * 550 + (float)(rand() % 150);
-        float size = 50 + (float)(rand() % 30);
+        float x = 500 + i * 450 + (float)(rand() % 130);
+        float size = 50 + (float)(rand() % 35);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
     }

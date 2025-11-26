@@ -2,10 +2,10 @@
 #include <stdlib.h>
 
 #define MAX_PUNCHES 5
-#define MAX_ENEMIES 10
-#define MAX_OBSTACLES 12
-#define MAP_LENGTH 6500
-#define ENEMY_SPAWN_DISTANCE 550
+#define MAX_ENEMIES 20
+#define MAX_OBSTACLES 28
+#define MAP_LENGTH 12000
+#define ENEMY_SPAWN_DISTANCE 500
 #define MAX_PUNCH_DISTANCE 450
 
 typedef enum {
@@ -135,16 +135,16 @@ static void InitLevelElastico(Level *level) {
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        data->enemies[i].position = (Vector2){ 700 + i * 680, GROUND_Y - 70 };
+        data->enemies[i].position = (Vector2){ 600 + i * 550, GROUND_Y - 70 };
         data->enemies[i].active = false;
-        data->enemies[i].speed = 1.3f + (float)(rand() % 80) / 100.0f;
+        data->enemies[i].speed = 2.0f + (float)(rand() % 100) / 100.0f;
         data->enemies[i].width = 70;
         data->enemies[i].height = 70;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
-        float x = 550 + i * 530 + (float)(rand() % 120);
-        float size = 45 + (float)(rand() % 25);
+        float x = 450 + i * 420 + (float)(rand() % 150);
+        float size = 50 + (float)(rand() % 40);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
     }

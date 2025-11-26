@@ -2,10 +2,10 @@
 #include <stdlib.h>
 
 #define MAX_PROJECTILES 7
-#define MAX_ENEMIES 14
-#define MAX_OBSTACLES 18
-#define MAP_LENGTH 9000
-#define ENEMY_SPAWN_DISTANCE 650
+#define MAX_ENEMIES 8
+#define MAX_OBSTACLES 10
+#define MAP_LENGTH 5000
+#define ENEMY_SPAWN_DISTANCE 700
 
 typedef enum {
     ANIM_IDLE,
@@ -139,16 +139,16 @@ static void InitLevelInvisivel(Level *level) {
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        data->enemies[i].position = (Vector2){ 650 + i * 680, GROUND_Y - 85 };
+        data->enemies[i].position = (Vector2){ 800 + i * 800, GROUND_Y - 85 };
         data->enemies[i].active = false;
-        data->enemies[i].speed = 1.8f + (float)(rand() % 100) / 100.0f;
+        data->enemies[i].speed = 1.2f + (float)(rand() % 50) / 100.0f;
         data->enemies[i].width = 85;
         data->enemies[i].height = 85;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
-        float x = 500 + i * 500 + (float)(rand() % 150);
-        float size = 50 + (float)(rand() % 35);
+        float x = 600 + i * 550 + (float)(rand() % 100);
+        float size = 40 + (float)(rand() % 25);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
     }

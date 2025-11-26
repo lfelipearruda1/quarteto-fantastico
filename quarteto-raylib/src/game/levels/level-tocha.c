@@ -2,10 +2,10 @@
 #include <stdlib.h>
 
 #define MAX_FIREBALLS 10
-#define MAX_ENEMIES 10
-#define MAX_OBSTACLES 12
-#define MAP_LENGTH 6000
-#define ENEMY_SPAWN_DISTANCE 500
+#define MAX_ENEMIES 12
+#define MAX_OBSTACLES 16
+#define MAP_LENGTH 7500
+#define ENEMY_SPAWN_DISTANCE 600
 
 typedef enum {
     ANIM_IDLE,
@@ -140,16 +140,16 @@ static void InitLevelTocha(Level *level) {
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        data->enemies[i].position = (Vector2){ 800 + i * 600, GROUND_Y - 70 };
+        data->enemies[i].position = (Vector2){ 700 + i * 650, GROUND_Y - 70 };
         data->enemies[i].active = false;
-        data->enemies[i].speed = 1.2f + (float)(rand() % 60) / 100.0f;
+        data->enemies[i].speed = 1.5f + (float)(rand() % 70) / 100.0f;
         data->enemies[i].width = 70;
         data->enemies[i].height = 70;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
-        float x = 600 + i * 500 + (float)(rand() % 100);
-        float size = 40 + (float)(rand() % 25);
+        float x = 550 + i * 480 + (float)(rand() % 120);
+        float size = 45 + (float)(rand() % 30);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
     }
