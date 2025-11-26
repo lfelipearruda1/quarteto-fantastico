@@ -1,5 +1,6 @@
 #include "level-common.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 #define MAX_PROJECTILES 7
 #define MAX_ENEMIES 8
@@ -30,6 +31,7 @@ typedef struct {
     bool isAttacking;
     bool invisible;
     float invisibleTimer;
+    int invisibleUses;
     
     Projectile projectiles[MAX_PROJECTILES];
     BaseEnemy enemies[MAX_ENEMIES];
@@ -95,11 +97,11 @@ static void InitLevelInvisivel(Level *level) {
     data->score = 0;
     data->cameraX = 0;
 
-    data->backgroundTexture = LoadTexture("assets/coisa/fundoicoisa.png");
-    data->platformTexture = LoadTexture("assets/coisa/plataforma-coisa.png");
-    data->obstacleTexture = LoadTexture("assets/coisa/obstaculo-coisa.png");
+    data->backgroundTexture = LoadTexture("Mapa Cidade/fundo_cidade.png");
+    data->platformTexture = LoadTexture("Mapa Cidade/plataforma-cidade.png");
+    data->obstacleTexture = LoadTexture("Mapa Cidade/obstaculo.png");
     data->heartTexture = LoadTexture("assets/coracao.png");
-    data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
+    data->enemyTexture = LoadTexture("assets/inimigo-coisa.png");
 
     data->playerIdle = LoadTexture("assets/mulher-invisivel/parado.png");
     data->playerIdleLeft = LoadTexture("assets/mulher-invisivel/parado (1).png");
@@ -133,6 +135,7 @@ static void InitLevelInvisivel(Level *level) {
     data->isAttacking = false;
     data->invisible = false;
     data->invisibleTimer = 0;
+    data->invisibleUses = 2;
 
     for (int i = 0; i < MAX_PROJECTILES; i++) {
         data->projectiles[i].active = false;
@@ -148,9 +151,10 @@ static void InitLevelInvisivel(Level *level) {
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
         float x = 600 + i * 550 + (float)(rand() % 100);
-        float size = 40 + (float)(rand() % 25);
+        float size = 60 + (float)(rand() % 35);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
+        data->obstacles[i].textureIndex = 0;
     }
 }
 
@@ -182,9 +186,10 @@ static void UpdateLevelInvisivel(Level *level, GameState *state) {
     CommonUpdateCamera(&data->cameraX, &data->player);
     CommonHandleJump(&data->player);
 
-    if (IsKeyPressed(KEY_Q) && !data->invisible) {
+    if (IsKeyPressed(KEY_Q) && !data->invisible && data->invisibleUses > 0) {
         data->invisible = true;
         data->invisibleTimer = 2.0f;
+        data->invisibleUses--;
     }
 
     if (IsKeyPressed(KEY_E)) {
@@ -239,31 +244,39 @@ static void UpdateLevelInvisivel(Level *level, GameState *state) {
     CommonUpdateEnemies(data->enemies, MAX_ENEMIES, data->cameraX);
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
-        if (data->enemies[i].active) {
-            if (!data->invisible && CommonCheckPlayerEnemyCollision(&data->player, &data->enemies[i])) {
-                CommonHandlePlayerDamage(&data->player, &data->enemies[i], &data->gameLost);
-            }
-
-            Rectangle enemyRect = {
-                data->enemies[i].position.x,
-                data->enemies[i].position.y,
-                data->enemies[i].width,
-                data->enemies[i].height
+        if (!data->enemies[i].active) continue;
+        
+        Rectangle enemyBox = {
+            data->enemies[i].position.x,
+            data->enemies[i].position.y,
+            data->enemies[i].width,
+            data->enemies[i].height
+        };
+        
+        for (int j = 0; j < MAX_PROJECTILES; j++) {
+            if (!data->projectiles[j].active) continue;
+            
+            Rectangle projBox = {
+                data->projectiles[j].position.x - 20,
+                data->projectiles[j].position.y - 20,
+                40,
+                40
             };
+            
+            if (CheckCollisionRecs(enemyBox, projBox)) {
+                data->enemies[i].active = false;
+                data->enemies[i].position.x = -9999;
+                data->projectiles[j].active = false;
+                data->score += 100;
+                break;
+            }
+        }
+    }
 
-            for (int j = 0; j < MAX_PROJECTILES; j++) {
-                if (data->projectiles[j].active) {
-                    Rectangle projRect = {
-                        data->projectiles[j].position.x - 15,
-                        data->projectiles[j].position.y - 15,
-                        30, 30
-                    };
-                    if (CheckCollisionRecs(projRect, enemyRect)) {
-                        data->enemies[i].active = false;
-                        data->projectiles[j].active = false;
-                        data->score += 100;
-                    }
-                }
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        if (data->enemies[i].active && !data->invisible) {
+            if (CommonCheckPlayerEnemyCollision(&data->player, &data->enemies[i])) {
+                CommonHandlePlayerDamage(&data->player, &data->enemies[i], &data->gameLost);
             }
         }
     }
@@ -284,7 +297,7 @@ static void DrawLevelInvisivel(Level *level) {
     ClearBackground((Color){5, 10, 20, 255});
     CommonDrawBackground(data->backgroundTexture, data->cameraX);
     CommonDrawPlatform(data->platformTexture, data->cameraX, MAP_LENGTH);
-    CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, data->obstacleTexture, data->cameraX);
+    CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, &data->obstacleTexture, 1, data->cameraX);
 
     Texture2D currentTexture = data->playerIdle;
     if (data->player.facingRight) {
@@ -353,13 +366,14 @@ static void DrawLevelInvisivel(Level *level) {
     CommonDrawHUD(data->score, data->player.position.x, MAP_LENGTH);
     
     if (data->invisible) {
-        DrawText("INVISIVEL!", W - 150, 20, 20, VIOLET);
+        DrawText("INVISIVEL!", W - 180, 20, 20, VIOLET);
     } else {
-        DrawText("Q: Invisivel", W - 150, 20, 18, GRAY);
+        char usesText[32];
+        snprintf(usesText, sizeof(usesText), "Q: Invisivel (%d)", data->invisibleUses);
+        DrawText(usesText, W - 180, 20, 18, data->invisibleUses > 0 ? LIGHTGRAY : DARKGRAY);
     }
 
-    CommonDrawProgressBar(data->player.position.x / MAP_LENGTH, VIOLET);
-    DrawText("WASD: Mover | W: Pular | E: Atirar | Q: Invisivel", 10, H - 60, 16, LIGHTGRAY);
+    DrawText("WASD: Mover | W: Pular | E: Atirar | Q: Invisivel", 10, H - 30, 16, LIGHTGRAY);
 
     if (data->gameWon) CommonDrawVictoryScreen(data->score);
     else if (data->gameLost) CommonDrawGameOverScreen(data->score);

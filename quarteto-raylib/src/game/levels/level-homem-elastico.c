@@ -1,7 +1,7 @@
 #include "level-common.h"
 #include <stdlib.h>
 
-#define MAX_PUNCHES 5
+#define MAX_PROJECTILES 8
 #define MAX_ENEMIES 20
 #define MAX_OBSTACLES 28
 #define MAP_LENGTH 12000
@@ -19,9 +19,8 @@ typedef struct {
     Vector2 position;
     bool active;
     float speed;
-    float startX;
-    float extension;
-} Punch;
+} Projectile;
+
 
 typedef struct {
     BaseCharacter player;
@@ -31,7 +30,7 @@ typedef struct {
     float attackTimer;
     bool isAttacking;
     
-    Punch punches[MAX_PUNCHES];
+    Projectile projectiles[MAX_PROJECTILES];
     BaseEnemy enemies[MAX_ENEMIES];
     BaseObstacle obstacles[MAX_OBSTACLES];
     float cameraX;
@@ -44,6 +43,8 @@ typedef struct {
     Texture2D platformTexture;
     Texture2D obstacleTexture;
     Texture2D heartTexture;
+    Texture2D playerIdle;
+    Texture2D playerIdleLeft;
     Texture2D playerRunning[4];
     Texture2D playerRunningLeft[4];
     Texture2D playerJumping;
@@ -55,25 +56,23 @@ typedef struct {
     Texture2D enemyTexture;
 } LevelElasticoData;
 
-static void ShootPunch(LevelElasticoData *data) {
-    for (int i = 0; i < MAX_PUNCHES; i++) {
-        if (!data->punches[i].active) {
+static void ShootProjectile(LevelElasticoData *data) {
+    for (int i = 0; i < MAX_PROJECTILES; i++) {
+        if (!data->projectiles[i].active) {
             if (data->player.facingRight) {
-                data->punches[i].position = (Vector2){
+                data->projectiles[i].position = (Vector2){
                     data->player.position.x + data->player.width,
                     data->player.position.y + data->player.height / 2
                 };
-                data->punches[i].speed = 9.0f;
+                data->projectiles[i].speed = 10.0f;
             } else {
-                data->punches[i].position = (Vector2){
+                data->projectiles[i].position = (Vector2){
                     data->player.position.x,
                     data->player.position.y + data->player.height / 2
                 };
-                data->punches[i].speed = -9.0f;
+                data->projectiles[i].speed = -10.0f;
             }
-            data->punches[i].startX = data->punches[i].position.x;
-            data->punches[i].active = true;
-            data->punches[i].extension = 0;
+            data->projectiles[i].active = true;
             
             data->isAttacking = true;
             data->attackTimer = 0.3f;
@@ -94,12 +93,14 @@ static void InitLevelElastico(Level *level) {
     data->score = 0;
     data->cameraX = 0;
 
-    data->backgroundTexture = LoadTexture("assets/coisa/fundoicoisa.png");
-    data->platformTexture = LoadTexture("assets/coisa/plataforma-coisa.png");
-    data->obstacleTexture = LoadTexture("assets/coisa/obstaculo-coisa.png");
+    data->backgroundTexture = LoadTexture("Mapa Cidade/fundo_cidade.png");
+    data->platformTexture = LoadTexture("Mapa Cidade/plataforma-cidade.png");
+    data->obstacleTexture = LoadTexture("Mapa Cidade/obstaculo.png");
     data->heartTexture = LoadTexture("assets/coracao.png");
-    data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
+    data->enemyTexture = LoadTexture("assets/inimigo-coisa.png");
 
+    data->playerIdle = LoadTexture("assets/homem-elastico/correndo-1.png");
+    data->playerIdleLeft = LoadTexture("assets/homem-elastico/correndo-1 (1).png");
     data->playerRunning[0] = LoadTexture("assets/homem-elastico/correndo-1.png");
     data->playerRunning[1] = LoadTexture("assets/homem-elastico/correndo-2.png");
     data->playerRunning[2] = LoadTexture("assets/homem-elastico/correndo-3.png");
@@ -130,8 +131,10 @@ static void InitLevelElastico(Level *level) {
     data->attackTimer = 0;
     data->isAttacking = false;
 
-    for (int i = 0; i < MAX_PUNCHES; i++) {
-        data->punches[i].active = false;
+    for (int i = 0; i < MAX_PROJECTILES; i++) {
+        data->projectiles[i].active = false;
+        data->projectiles[i].position = (Vector2){0, 0};
+        data->projectiles[i].speed = 0;
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
@@ -144,9 +147,10 @@ static void InitLevelElastico(Level *level) {
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
         float x = 450 + i * 420 + (float)(rand() % 150);
-        float size = 50 + (float)(rand() % 40);
+        float size = 75 + (float)(rand() % 50);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
+        data->obstacles[i].textureIndex = 0;
     }
 }
 
@@ -172,7 +176,7 @@ static void UpdateLevelElastico(Level *level, GameState *state) {
     CommonHandleJump(&data->player);
 
     if (IsKeyPressed(KEY_E)) {
-        ShootPunch(data);
+        ShootProjectile(data);
     }
 
     CommonApplyGravity(&data->player);
@@ -209,17 +213,13 @@ static void UpdateLevelElastico(Level *level, GameState *state) {
         if (data->animFrame >= maxFrames) data->animFrame = 0;
     }
 
-    for (int i = 0; i < MAX_PUNCHES; i++) {
-        if (data->punches[i].active) {
-            data->punches[i].position.x += data->punches[i].speed;
-            data->punches[i].extension = (data->punches[i].speed > 0) ?
-                                         (data->punches[i].position.x - data->punches[i].startX) :
-                                         (data->punches[i].startX - data->punches[i].position.x);
-
-            if (data->punches[i].extension > MAX_PUNCH_DISTANCE ||
-                data->punches[i].position.x > data->cameraX + W + 50 ||
-                data->punches[i].position.x < data->cameraX - 50) {
-                data->punches[i].active = false;
+    for (int i = 0; i < MAX_PROJECTILES; i++) {
+        if (data->projectiles[i].active) {
+            data->projectiles[i].position.x += data->projectiles[i].speed;
+            
+            if (data->projectiles[i].position.x > data->cameraX + W + 100 ||
+                data->projectiles[i].position.x < data->cameraX - 100) {
+                data->projectiles[i].active = false;
             }
         }
     }
@@ -228,31 +228,39 @@ static void UpdateLevelElastico(Level *level, GameState *state) {
     CommonUpdateEnemies(data->enemies, MAX_ENEMIES, data->cameraX);
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
+        if (!data->enemies[i].active) continue;
+        
+        Rectangle enemyBox = {
+            data->enemies[i].position.x,
+            data->enemies[i].position.y,
+            data->enemies[i].width,
+            data->enemies[i].height
+        };
+        
+        for (int j = 0; j < MAX_PROJECTILES; j++) {
+            if (!data->projectiles[j].active) continue;
+            
+            Rectangle projBox = {
+                data->projectiles[j].position.x - 12,
+                data->projectiles[j].position.y - 12,
+                24,
+                24
+            };
+            
+            if (CheckCollisionRecs(enemyBox, projBox)) {
+                data->enemies[i].active = false;
+                data->enemies[i].position.x = -9999;
+                data->projectiles[j].active = false;
+                data->score += 100;
+                break;
+            }
+        }
+    }
+
+    for (int i = 0; i < MAX_ENEMIES; i++) {
         if (data->enemies[i].active) {
             if (CommonCheckPlayerEnemyCollision(&data->player, &data->enemies[i])) {
                 CommonHandlePlayerDamage(&data->player, &data->enemies[i], &data->gameLost);
-            }
-
-            Rectangle enemyRect = {
-                data->enemies[i].position.x,
-                data->enemies[i].position.y,
-                data->enemies[i].width,
-                data->enemies[i].height
-            };
-
-            for (int j = 0; j < MAX_PUNCHES; j++) {
-                if (data->punches[j].active) {
-                    Rectangle punchRect = {
-                        data->punches[j].position.x - 15,
-                        data->punches[j].position.y - 15,
-                        30, 30
-                    };
-                    if (CheckCollisionRecs(punchRect, enemyRect)) {
-                        data->enemies[i].active = false;
-                        data->punches[j].active = false;
-                        data->score += 100;
-                    }
-                }
             }
         }
     }
@@ -273,12 +281,14 @@ static void DrawLevelElastico(Level *level) {
     ClearBackground((Color){10, 20, 40, 255});
     CommonDrawBackground(data->backgroundTexture, data->cameraX);
     CommonDrawPlatform(data->platformTexture, data->cameraX, MAP_LENGTH);
-    CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, data->obstacleTexture, data->cameraX);
+    CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, &data->obstacleTexture, 1, data->cameraX);
 
-    Texture2D currentTexture = data->playerRunning[0];
+    Texture2D currentTexture = data->playerIdle;
     if (data->player.facingRight) {
         switch (data->currentAnimation) {
             case ANIM_IDLE: 
+                currentTexture = data->playerIdle;
+                break;
             case ANIM_RUNNING: 
                 currentTexture = data->playerRunning[data->animFrame % 4]; 
                 break;
@@ -292,6 +302,8 @@ static void DrawLevelElastico(Level *level) {
     } else {
         switch (data->currentAnimation) {
             case ANIM_IDLE: 
+                currentTexture = data->playerIdleLeft;
+                break;
             case ANIM_RUNNING: 
                 currentTexture = data->playerRunningLeft[data->animFrame % 4]; 
                 break;
@@ -313,26 +325,17 @@ static void DrawLevelElastico(Level *level) {
     };
     DrawTexturePro(currentTexture, source, dest, (Vector2){0, 0}, 0, CommonGetPlayerColor(&data->player));
 
-    for (int i = 0; i < MAX_PUNCHES; i++) {
-        if (data->punches[i].active) {
-            float width = 10 + (data->punches[i].extension / MAX_PUNCH_DISTANCE) * 40;
-            if (data->punches[i].speed > 0) {
-                DrawRectangle(
-                    (int)(data->punches[i].startX - data->cameraX),
-                    (int)(data->punches[i].position.y - 5),
-                    (int)width, 10, BLUE
-                );
-            } else {
-                DrawRectangle(
-                    (int)(data->punches[i].position.x - data->cameraX),
-                    (int)(data->punches[i].position.y - 5),
-                    (int)width, 10, BLUE
-                );
-            }
+    for (int i = 0; i < MAX_PROJECTILES; i++) {
+        if (data->projectiles[i].active) {
             DrawCircle(
-                (int)(data->punches[i].position.x - data->cameraX),
-                (int)data->punches[i].position.y,
-                15, SKYBLUE
+                (int)(data->projectiles[i].position.x - data->cameraX),
+                (int)data->projectiles[i].position.y,
+                12, SKYBLUE
+            );
+            DrawCircle(
+                (int)(data->projectiles[i].position.x - data->cameraX),
+                (int)data->projectiles[i].position.y,
+                8, BLUE
             );
         }
     }
@@ -348,8 +351,7 @@ static void DrawLevelElastico(Level *level) {
 
     CommonDrawHealthHearts(data->player.health, data->heartTexture);
     CommonDrawHUD(data->score, data->player.position.x, MAP_LENGTH);
-    CommonDrawProgressBar(data->player.position.x / MAP_LENGTH, BLUE);
-    DrawText("WASD: Mover | W/ESPACO: Pular | E: Soco Elastico", 10, H - 60, 16, LIGHTGRAY);
+    DrawText("WASD: Mover | W/ESPACO: Pular | E: Bolinha Azul", 10, H - 30, 16, LIGHTGRAY);
 
     if (data->gameWon) CommonDrawVictoryScreen(data->score);
     else if (data->gameLost) CommonDrawGameOverScreen(data->score);
@@ -363,6 +365,8 @@ static void UnloadLevelElastico(Level *level) {
     if (data->obstacleTexture.id > 0) UnloadTexture(data->obstacleTexture);
     if (data->heartTexture.id > 0) UnloadTexture(data->heartTexture);
     if (data->enemyTexture.id > 0) UnloadTexture(data->enemyTexture);
+    if (data->playerIdle.id > 0) UnloadTexture(data->playerIdle);
+    if (data->playerIdleLeft.id > 0) UnloadTexture(data->playerIdleLeft);
     
     for (int i = 0; i < 4; i++) {
         if (data->playerRunning[i].id > 0) UnloadTexture(data->playerRunning[i]);

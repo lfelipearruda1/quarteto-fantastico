@@ -5,195 +5,163 @@
 
 #define W 960
 #define H 540
+#define MAX_RANKING_SIZE 1000
 
 typedef struct {
     char name[32];
     int score;
-    int position;
-} RankingPlayer;
+} RankingEntry;
 
-RankingPlayer *rankingList = NULL;
-int rankingCount = 0;
-int currentPlayerPosition = -1;
-
+static RankingEntry *rankingData = NULL;
+static int totalPlayers = 0;
 static char currentPlayerName[32] = {0};
-static bool nameSaved = false;
-static Rectangle btnBackRanking;
+static bool hasCurrentPlayer = false;
+static Rectangle btnBack;
 
 void SetCurrentPlayerName(const char *name, bool saved) {
-    strncpy(currentPlayerName, name, sizeof(currentPlayerName) - 1);
-    currentPlayerName[sizeof(currentPlayerName) - 1] = '\0';
-    nameSaved = saved;
+    if (name && saved) {
+        strncpy(currentPlayerName, name, sizeof(currentPlayerName) - 1);
+        currentPlayerName[sizeof(currentPlayerName) - 1] = '\0';
+        hasCurrentPlayer = true;
+    } else {
+        currentPlayerName[0] = '\0';
+        hasCurrentPlayer = false;
+    }
+}
+
+static int CompareScores(const void *a, const void *b) {
+    const RankingEntry *entryA = (const RankingEntry*)a;
+    const RankingEntry *entryB = (const RankingEntry*)b;
+    return entryB->score - entryA->score;
 }
 
 void LoadRanking(void) {
-    if (rankingList) {
-        free(rankingList);
-        rankingList = NULL;
-        rankingCount = 0;
+    if (rankingData) {
+        free(rankingData);
+        rankingData = NULL;
     }
+    totalPlayers = 0;
 
     FILE *f = fopen("players.txt", "r");
     if (!f) {
-        rankingCount = 0;
         return;
     }
 
-    char line[64];
-    int count = 0;
-    while (fgets(line, sizeof(line), f)) {
-        size_t len = strlen(line);
-        if (len > 0 && line[len-1] == '\n') {
-            line[len-1] = '\0';
-        }
-        if (strlen(line) > 0) {
-            count++;
-        }
-    }
-    rewind(f);
-
-    if (count == 0) {
+    rankingData = (RankingEntry*)malloc(MAX_RANKING_SIZE * sizeof(RankingEntry));
+    if (!rankingData) {
         fclose(f);
         return;
     }
 
-    rankingList = (RankingPlayer*)malloc(count * sizeof(RankingPlayer));
-    if (!rankingList) {
-        fclose(f);
-        return;
-    }
-
-    int idx = 0;
-    while (fgets(line, sizeof(line), f) && idx < count) {
-        size_t len = strlen(line);
-        if (len > 0 && line[len-1] == '\n') {
-            line[len-1] = '\0';
-        }
-        if (strlen(line) > 0) {
-            char name[64];
-            int score = 0;
-
-            int parsed = sscanf(line, "%63s %d", name, &score);
-            if (parsed >= 1) {
-                strncpy(rankingList[idx].name, name, sizeof(rankingList[idx].name) - 1);
-                rankingList[idx].name[sizeof(rankingList[idx].name) - 1] = '\0';
-                rankingList[idx].score = (parsed == 2) ? score : 0;
-                rankingList[idx].position = idx + 1;
-                idx++;
-            }
+    char line[128];
+    while (fgets(line, sizeof(line), f) && totalPlayers < MAX_RANKING_SIZE) {
+        char name[64];
+        int score = 0;
+        
+        if (sscanf(line, "%63s %d", name, &score) >= 1) {
+            strncpy(rankingData[totalPlayers].name, name, sizeof(rankingData[totalPlayers].name) - 1);
+            rankingData[totalPlayers].name[sizeof(rankingData[totalPlayers].name) - 1] = '\0';
+            rankingData[totalPlayers].score = score;
+            totalPlayers++;
         }
     }
     fclose(f);
-    rankingCount = idx;
 
-    for (int i = 0; i < rankingCount - 1; i++) {
-        for (int j = i + 1; j < rankingCount; j++) {
-            if (rankingList[j].score > rankingList[i].score) {
-                RankingPlayer temp = rankingList[i];
-                rankingList[i] = rankingList[j];
-                rankingList[j] = temp;
-            }
-        }
-    }
-
-    for (int i = 0; i < rankingCount; i++) {
-        rankingList[i].position = i + 1;
-    }
-
-    currentPlayerPosition = -1;
-    if (nameSaved && strlen(currentPlayerName) > 0) {
-        for (int i = 0; i < rankingCount; i++) {
-            if (strcmp(rankingList[i].name, currentPlayerName) == 0) {
-                currentPlayerPosition = i + 1;
-                break;
-            }
-        }
-    }
+    qsort(rankingData, totalPlayers, sizeof(RankingEntry), CompareScores);
 }
 
 void InitRanking(void) {
+    btnBack = (Rectangle){ 20, H - 60, 120, 40 };
     LoadRanking();
 }
 
 void UpdateRanking(GameState *state) {
-    btnBackRanking = (Rectangle){ 20, H - 50, 100, 35 };
-
     Vector2 mouse = GetMousePosition();
-    bool mousePressed = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
-
-    if (mousePressed && CheckCollisionPointRec(mouse, btnBackRanking)) {
-        *state = STATE_SELECT;
+    
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(mouse, btnBack)) {
+            *state = STATE_SELECT;
+        }
     }
 }
 
 void DrawRanking(void) {
     ClearBackground((Color){12, 16, 28, 255});
 
-    const char *title = "RANKING POR PONTUACAO";
-    int titleWidth = MeasureText(title, 32);
-    DrawText(title, W/2 - titleWidth/2, 30, 32, GOLD);
+    const char *title = "RANKING - TOP JOGADORES";
+    int titleWidth = MeasureText(title, 36);
+    DrawText(title, W/2 - titleWidth/2, 20, 36, GOLD);
 
-    Color backBtnColor = CheckCollisionPointRec(GetMousePosition(), btnBackRanking) ?
-                         (Color){100, 100, 140, 255} : (Color){60, 60, 90, 255};
-    DrawRectangleRounded(btnBackRanking, 0.3f, 6, backBtnColor);
-    const char *backText = "Voltar";
-    int backTextWidth = MeasureText(backText, 18);
-    DrawText(backText, (int)(btnBackRanking.x + (btnBackRanking.width - backTextWidth) / 2), (int)(btnBackRanking.y + (btnBackRanking.height - 18) / 2), 18, WHITE);
+    Color backBtnColor = CheckCollisionPointRec(GetMousePosition(), btnBack) ? 
+                         (Color){80, 80, 120, 255} : (Color){50, 50, 80, 255};
+    DrawRectangleRounded(btnBack, 0.3f, 6, backBtnColor);
+    const char *backText = "VOLTAR";
+    int backWidth = MeasureText(backText, 20);
+    DrawText(backText, (int)(btnBack.x + (btnBack.width - backWidth) / 2), 
+             (int)(btnBack.y + (btnBack.height - 20) / 2), 20, WHITE);
 
-    int startY = 100;
+    if (totalPlayers == 0) {
+        const char *msg = "Nenhum jogador cadastrado ainda!";
+        int msgWidth = MeasureText(msg, 24);
+        DrawText(msg, W/2 - msgWidth/2, H/2, 24, GRAY);
+        return;
+    }
+
+    int startY = 80;
     int lineHeight = 35;
-    int maxVisible = (H - startY - 80) / lineHeight;
+    int maxDisplay = 10;
 
-    DrawText("Pos.", 50, startY, 20, GRAY);
-    DrawText("Nome", 150, startY, 20, GRAY);
-    DrawText("Pontos", W - 200, startY, 20, GRAY);
+    DrawText("POS", 60, startY, 20, LIGHTGRAY);
+    DrawText("JOGADOR", 150, startY, 20, LIGHTGRAY);
+    DrawText("PONTOS", W - 200, startY, 20, LIGHTGRAY);
+    DrawLine(50, startY + 28, W - 50, startY + 28, GRAY);
 
-    DrawLine(40, startY + 25, W - 40, startY + 25, GRAY);
+    int currentPlayerPos = -1;
+    if (hasCurrentPlayer) {
+        for (int i = 0; i < totalPlayers; i++) {
+            if (strcmp(rankingData[i].name, currentPlayerName) == 0) {
+                currentPlayerPos = i + 1;
+                break;
+            }
+        }
+    }
 
     int y = startY + 40;
-    for (int i = 0; i < rankingCount && i < maxVisible; i++) {
-        Color textColor = RAYWHITE;
-        Color bgColor = (Color){20, 24, 36, 255};
-
-        if (currentPlayerPosition > 0 && rankingList[i].position == currentPlayerPosition) {
-            textColor = GOLD;
-            bgColor = (Color){40, 30, 20, 255};
+    for (int i = 0; i < totalPlayers && i < maxDisplay; i++) {
+        bool isCurrentPlayer = (currentPlayerPos > 0 && (i + 1) == currentPlayerPos);
+        
+        Color bgColor = isCurrentPlayer ? (Color){60, 45, 20, 200} : (Color){25, 30, 45, 150};
+        Color textColor = isCurrentPlayer ? GOLD : RAYWHITE;
+        
+        DrawRectangleRounded((Rectangle){50, y - 8, W - 100, lineHeight - 5}, 0.2f, 6, bgColor);
+        
+        if (isCurrentPlayer) {
+            DrawRectangleLinesEx((Rectangle){50, y - 8, W - 100, lineHeight - 5}, 2, GOLD);
         }
 
-        DrawRectangleRounded((Rectangle){40, y - 5, W - 80, lineHeight - 5}, 0.2f, 4, bgColor);
-
         char posStr[16];
-        snprintf(posStr, sizeof(posStr), "%d", rankingList[i].position);
-        DrawText(posStr, 50, y, 18, textColor);
+        snprintf(posStr, sizeof(posStr), "%d°", i + 1);
+        DrawText(posStr, 60, y, 20, textColor);
 
-        DrawText(rankingList[i].name, 150, y, 18, textColor);
-        char scoreStr[16];
-        snprintf(scoreStr, sizeof(scoreStr), "%d", rankingList[i].score);
-        DrawText(scoreStr, W - 200, y, 18, textColor);
+        DrawText(rankingData[i].name, 150, y, 20, textColor);
 
-        if (currentPlayerPosition > 0 && rankingList[i].position == currentPlayerPosition) {
-            DrawText("<- VOCÊ", W - 120, y, 16, GOLD);
+        char scoreStr[32];
+        snprintf(scoreStr, sizeof(scoreStr), "%d pts", rankingData[i].score);
+        DrawText(scoreStr, W - 200, y, 20, textColor);
+
+        if (isCurrentPlayer) {
+            DrawText("← VOCE", W - 110, y + 2, 16, GOLD);
         }
 
         y += lineHeight;
     }
-
-    if (currentPlayerPosition > 0 && currentPlayerPosition > maxVisible) {
-        char posMsg[64];
-        snprintf(posMsg, sizeof(posMsg), "Sua posicao: %d", currentPlayerPosition);
-        DrawText(posMsg, W/2 - MeasureText(posMsg, 20)/2, H - 40, 20, GOLD);
-    }
-
-    if (rankingCount == 0) {
-        DrawText("Nenhum jogador registrado ainda.", W/2 - 200, H/2, 20, GRAY);
-    }
 }
 
 void FreeRanking(void) {
-    if (rankingList) {
-        free(rankingList);
-        rankingList = NULL;
+    if (rankingData) {
+        free(rankingData);
+        rankingData = NULL;
     }
-    rankingCount = 0;
-    currentPlayerPosition = -1;
+    totalPlayers = 0;
+    hasCurrentPlayer = false;
 }

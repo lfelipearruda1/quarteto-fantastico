@@ -194,13 +194,14 @@ void CommonDrawPlatform(Texture2D platformTexture, float cameraX, int mapLength)
     }
 }
 
-void CommonDrawObstacles(BaseObstacle *obstacles, int maxObstacles, Texture2D obstacleTexture, float cameraX) {
+void CommonDrawObstacles(BaseObstacle *obstacles, int maxObstacles, Texture2D *obstacleTextures, int numTextures, float cameraX) {
     for (int i = 0; i < maxObstacles; i++) {
         if (obstacles[i].active) {
+            int texIndex = obstacles[i].textureIndex % numTextures;
             Rectangle drawRect = obstacles[i].rect;
             drawRect.x -= cameraX;
-            Rectangle source = {0, 0, (float)obstacleTexture.width, (float)obstacleTexture.height};
-            DrawTexturePro(obstacleTexture, source, drawRect, (Vector2){0, 0}, 0, WHITE);
+            Rectangle source = {0, 0, (float)obstacleTextures[texIndex].width, (float)obstacleTextures[texIndex].height};
+            DrawTexturePro(obstacleTextures[texIndex], source, drawRect, (Vector2){0, 0}, 0, WHITE);
         }
     }
 }

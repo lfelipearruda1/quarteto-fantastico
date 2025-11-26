@@ -5,7 +5,7 @@
 #include "raylib.h"
 #include <stdbool.h>
 
-#define GROUND_Y 400
+#define GROUND_Y 340
 
 typedef enum {
     LEVEL_COISA,
@@ -53,6 +53,7 @@ typedef struct {
 typedef struct {
     Rectangle rect;
     bool active;
+    int textureIndex;
 } BaseObstacle;
 
 void UpdatePlayerScore(const char *name, int newScore);
@@ -74,7 +75,7 @@ void CommonDrawHUD(int score, float playerX, float mapLength);
 void CommonDrawProgressBar(float progress, Color barColor);
 void CommonDrawBackground(Texture2D backgroundTexture, float cameraX);
 void CommonDrawPlatform(Texture2D platformTexture, float cameraX, int mapLength);
-void CommonDrawObstacles(BaseObstacle *obstacles, int maxObstacles, Texture2D obstacleTexture, float cameraX);
+void CommonDrawObstacles(BaseObstacle *obstacles, int maxObstacles, Texture2D *obstacleTextures, int numTextures, float cameraX);
 void CommonDrawVictoryScreen(int score);
 void CommonDrawGameOverScreen(int score);
 void CommonHandleGameEnd(bool gameWon, bool gameLost, float *gameEndTimer, int score, GameState *state);

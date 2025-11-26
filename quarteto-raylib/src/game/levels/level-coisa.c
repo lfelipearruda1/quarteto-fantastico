@@ -5,7 +5,6 @@
 #define MAX_ENEMIES 16
 #define MAX_OBSTACLES 22
 #define MAP_LENGTH 10000
-#define MAX_ROCK_DISTANCE 400
 #define ENEMY_SPAWN_DISTANCE 550
 
 typedef enum {
@@ -19,7 +18,6 @@ typedef struct {
     Vector2 position;
     bool active;
     float speed;
-    float startX;
     float rotation;
 } Rock;
 
@@ -74,7 +72,6 @@ static void ShootRock(Level1Data *data) {
                 };
                 data->rocks[i].speed = -8.0f;
             }
-            data->rocks[i].startX = data->rocks[i].position.x;
             data->rocks[i].active = true;
             data->rocks[i].rotation = 0;
             
@@ -97,11 +94,11 @@ static void InitLevel1(Level *level) {
     data->score = 0;
     data->cameraX = 0;
 
-    data->backgroundTexture = LoadTexture("assets/coisa/fundoicoisa.png");
-    data->platformTexture = LoadTexture("assets/coisa/plataforma-coisa.png");
-    data->obstacleTexture = LoadTexture("assets/coisa/obstaculo-coisa.png");
+    data->backgroundTexture = LoadTexture("Mapa Cidade/fundo_cidade.png");
+    data->platformTexture = LoadTexture("Mapa Cidade/plataforma-cidade.png");
+    data->obstacleTexture = LoadTexture("Mapa Cidade/obstaculo.png");
     data->heartTexture = LoadTexture("assets/coracao.png");
-    data->enemyTexture = LoadTexture("assets/coisa/inimigo-coisa.png");
+    data->enemyTexture = LoadTexture("assets/inimigo-coisa.png");
 
     data->playerIdle = LoadTexture("assets/coisa/parado.png");
     data->playerIdleLeft = LoadTexture("assets/coisa/parado (1).png");
@@ -150,9 +147,10 @@ static void InitLevel1(Level *level) {
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
         float x = 500 + i * 450 + (float)(rand() % 130);
-        float size = 50 + (float)(rand() % 35);
+        float size = 70 + (float)(rand() % 45);
         data->obstacles[i].rect = (Rectangle){ x, GROUND_Y - size, size, size };
         data->obstacles[i].active = true;
+        data->obstacles[i].textureIndex = 0;
     }
 }
 
@@ -220,12 +218,9 @@ static void UpdateLevel1(Level *level, GameState *state) {
         if (data->rocks[i].active) {
             data->rocks[i].position.x += data->rocks[i].speed;
             data->rocks[i].rotation += (data->rocks[i].speed > 0) ? 5.0f : -5.0f;
-            float distance = (data->rocks[i].speed > 0) ? 
-                            (data->rocks[i].position.x - data->rocks[i].startX) : 
-                            (data->rocks[i].startX - data->rocks[i].position.x);
-            if (distance > MAX_ROCK_DISTANCE ||
-                data->rocks[i].position.x > data->cameraX + W + 50 ||
-                data->rocks[i].position.x < data->cameraX - 50) {
+            
+            if (data->rocks[i].position.x > data->cameraX + W + 100 ||
+                data->rocks[i].position.x < data->cameraX - 100) {
                 data->rocks[i].active = false;
             }
         }
@@ -235,31 +230,39 @@ static void UpdateLevel1(Level *level, GameState *state) {
     CommonUpdateEnemies(data->enemies, MAX_ENEMIES, data->cameraX);
 
     for (int i = 0; i < MAX_ENEMIES; i++) {
+        if (!data->enemies[i].active) continue;
+        
+        Rectangle enemyBox = {
+            data->enemies[i].position.x,
+            data->enemies[i].position.y,
+            data->enemies[i].width,
+            data->enemies[i].height
+        };
+        
+        for (int j = 0; j < MAX_ROCKS; j++) {
+            if (!data->rocks[j].active) continue;
+            
+            Rectangle projBox = {
+                data->rocks[j].position.x - 20,
+                data->rocks[j].position.y - 20,
+                40,
+                40
+            };
+            
+            if (CheckCollisionRecs(enemyBox, projBox)) {
+                data->enemies[i].active = false;
+                data->enemies[i].position.x = -9999;
+                data->rocks[j].active = false;
+                data->score += 100;
+                break;
+            }
+        }
+    }
+
+    for (int i = 0; i < MAX_ENEMIES; i++) {
         if (data->enemies[i].active) {
             if (CommonCheckPlayerEnemyCollision(&data->player, &data->enemies[i])) {
                 CommonHandlePlayerDamage(&data->player, &data->enemies[i], &data->gameLost);
-            }
-
-            Rectangle enemyRect = {
-                data->enemies[i].position.x,
-                data->enemies[i].position.y,
-                data->enemies[i].width,
-                data->enemies[i].height
-            };
-
-            for (int j = 0; j < MAX_ROCKS; j++) {
-                if (data->rocks[j].active) {
-                    Rectangle rockRect = {
-                        data->rocks[j].position.x - 20,
-                        data->rocks[j].position.y - 20,
-                        40, 40
-                    };
-                    if (CheckCollisionRecs(rockRect, enemyRect)) {
-                        data->enemies[i].active = false;
-                        data->rocks[j].active = false;
-                        data->score += 100;
-                    }
-                }
             }
         }
     }
@@ -280,7 +283,7 @@ static void DrawLevel1(Level *level) {
     ClearBackground(BLACK);
     CommonDrawBackground(data->backgroundTexture, data->cameraX);
     CommonDrawPlatform(data->platformTexture, data->cameraX, MAP_LENGTH);
-    CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, data->obstacleTexture, data->cameraX);
+    CommonDrawObstacles(data->obstacles, MAX_OBSTACLES, &data->obstacleTexture, 1, data->cameraX);
 
     Texture2D currentTexture = data->playerIdle;
     if (data->player.facingRight) {
@@ -327,8 +330,7 @@ static void DrawLevel1(Level *level) {
 
     CommonDrawHealthHearts(data->player.health, data->heartTexture);
     CommonDrawHUD(data->score, data->player.position.x, MAP_LENGTH);
-    CommonDrawProgressBar(data->player.position.x / MAP_LENGTH, GREEN);
-    DrawText("WASD: Mover | W/ESPACO: Pular | E/ENTER: Atirar Pedra", 10, H - 60, 16, LIGHTGRAY);
+    DrawText("WASD: Mover | W/ESPACO: Pular | E/ENTER: Atirar Pedra", 10, H - 30, 16, LIGHTGRAY);
 
     if (data->gameWon) CommonDrawVictoryScreen(data->score);
     else if (data->gameLost) CommonDrawGameOverScreen(data->score);
