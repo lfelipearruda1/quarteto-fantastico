@@ -100,7 +100,7 @@ static void InitLevel1(Level *level) {
     data->platformTexture = LoadTexture("assets/mapa-cidade/plataforma-cidade.png");
     data->obstacleTexture = LoadTexture("assets/mapa-cidade/obstaculo.png");
     data->heartTexture = LoadTexture("assets/coracao.png");
-    data->enemyTexture = LoadTexture("assets/vilão/andando-1-espelhado.png");
+    data->enemyTexture = LoadTexture("assets/vilao/andando-1-espelhado.png");
 
     data->playerIdle = LoadTexture("assets/coisa/parado.png");
     data->playerIdleLeft = LoadTexture("assets/coisa/parado (1).png");

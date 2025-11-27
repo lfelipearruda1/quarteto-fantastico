@@ -102,7 +102,7 @@ static void InitLevelTocha(Level *level) {
     data->platformTexture = LoadTexture("assets/mapa-cidade/plataforma-cidade.png");
     data->obstacleTexture = LoadTexture("assets/mapa-cidade/obstaculo.png");
     data->heartTexture = LoadTexture("assets/coracao.png");
-    data->enemyTexture = LoadTexture("assets/vilão/andando-1-espelhado.png");
+    data->enemyTexture = LoadTexture("assets/vilao/andando-1-espelhado.png");
 
     data->playerIdle = LoadTexture("assets/tocha-humana/parado-1-Photoroom.png");
     data->playerIdleLeft = LoadTexture("assets/tocha-humana/parado-1-Photoroom (1).png");
@@ -132,7 +132,7 @@ static void InitLevelTocha(Level *level) {
     data->player.height = 110;
     data->player.invulnerabilityTimer = 0;
     data->player.facingRight = true;
-    
+
     data->currentAnimation = ANIM_IDLE;
     data->animFrame = 0;
     data->animTimer = 0;
