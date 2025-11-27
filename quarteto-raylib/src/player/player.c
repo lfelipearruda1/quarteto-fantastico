@@ -7,8 +7,14 @@ Player *playerList = NULL;
 
 void AddPlayerToList(const char *name, int level) {
     Player *p = (Player*)malloc(sizeof(Player));
+    if (!p) return;
+
     size_t len = strlen(name);
     p->name = (char*)malloc(len + 1);
+    if (!p->name) {
+        free(p);
+        return;
+    }
     memcpy(p->name, name, len + 1);
 
     p->levelChosen = level;
@@ -63,17 +69,17 @@ void UpdatePlayerScore(const char *name, int newScore) {
         return;
     }
 
-    char **names = (char**)malloc(count * sizeof(char*));
-    int *scores = (int*)malloc(count * sizeof(int));
+    char **names = malloc(count * sizeof(char*));
+    int *scores = malloc(count * sizeof(int));
 
     int idx = 0;
     while (fgets(line, sizeof(line), f) && idx < count) {
         char tempName[64];
         int tempScore;
         if (sscanf(line, "%63s %d", tempName, &tempScore) >= 1) {
-            names[idx] = (char*)malloc(strlen(tempName) + 1);
+            names[idx] = malloc(strlen(tempName) + 1);
             strcpy(names[idx], tempName);
-            scores[idx] = tempScore;
+            scores[idx] = (sscanf(line, "%*s %d", &tempScore) == 1) ? tempScore : 0;
 
             if (strcmp(tempName, name) == 0) {
                 scores[idx] = newScore;

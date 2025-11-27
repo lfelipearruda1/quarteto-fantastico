@@ -138,9 +138,11 @@ void DrawSelect(void) {
         Color border = (selectedCard == i) ? GOLD : RAYWHITE;
         DrawRectangleRounded(cards[i], 0.2f, 6, (Color){30, 34, 46, 255});
 
-        Rectangle src = {0, 0, cardImgs[i].width, cardImgs[i].height};
-        Rectangle dst = {cards[i].x + 10, cards[i].y + 10, cards[i].width - 20, cards[i].height - 40};
-        DrawTexturePro(cardImgs[i], src, dst, (Vector2){0,0}, 0, WHITE);
+        if (cardImgs[i].id > 0) {
+            Rectangle src = {0, 0, cardImgs[i].width, cardImgs[i].height};
+            Rectangle dst = {cards[i].x + 10, cards[i].y + 10, cards[i].width - 20, cards[i].height - 40};
+            DrawTexturePro(cardImgs[i], src, dst, (Vector2){0,0}, 0, WHITE);
+        }
 
         int diffTextWidth = MeasureText(difficulties[i], 16);
         DrawText(
@@ -157,6 +159,14 @@ void DrawSelect(void) {
 
 void UnloadSelect(void) {
     for (int i = 0; i < 4; i++) {
-        UnloadTexture(cardImgs[i]);
+        if (cardImgs[i].id > 0) UnloadTexture(cardImgs[i]);
     }
+}
+
+const char* GetPlayerName(void) {
+    return nameBuffer;
+}
+
+bool IsNameSaved(void) {
+    return nameSaved;
 }

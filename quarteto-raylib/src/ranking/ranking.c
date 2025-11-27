@@ -43,9 +43,15 @@ void LoadRanking(void) {
     totalPlayers = 0;
 
     FILE *f = fopen("players.txt", "r");
-    if (!f) return;
+    if (!f) {
+        return;
+    }
 
     rankingData = (RankingEntry*)malloc(MAX_RANKING_SIZE * sizeof(RankingEntry));
+    if (!rankingData) {
+        fclose(f);
+        return;
+    }
 
     char line[128];
     while (fgets(line, sizeof(line), f) && totalPlayers < MAX_RANKING_SIZE) {
@@ -133,9 +139,15 @@ void DrawRanking(void) {
             DrawRectangleLinesEx((Rectangle){50, y - 8, W - 100, lineHeight - 5}, 2, GOLD);
         }
 
-        DrawText(TextFormat("%d°", i + 1), 60, y, 20, textColor);
+        char posStr[16];
+        snprintf(posStr, sizeof(posStr), "%d°", i + 1);
+        DrawText(posStr, 60, y, 20, textColor);
+
         DrawText(rankingData[i].name, 150, y, 20, textColor);
-        DrawText(TextFormat("%d pts", rankingData[i].score), W - 200, y, 20, textColor);
+
+        char scoreStr[32];
+        snprintf(scoreStr, sizeof(scoreStr), "%d pts", rankingData[i].score);
+        DrawText(scoreStr, W - 200, y, 20, textColor);
 
         if (isCurrentPlayer) {
             DrawText("← VOCE", W - 110, y + 2, 16, GOLD);

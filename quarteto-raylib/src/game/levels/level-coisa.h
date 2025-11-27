@@ -4,7 +4,6 @@
 #include "level-common.h"
 
 Level* CreateLevelCoisa(void);
-void DestroyLevel(Level *level);
 
 #endif
 
