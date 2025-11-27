@@ -119,8 +119,15 @@ void DrawRanking(void) {
         }
     }
 
+    int rowsToShow = (totalPlayers < maxDisplay) ? totalPlayers : maxDisplay;
+    int rankingMatrix[10][2]; 
+    for (int i = 0; i < rowsToShow; i++) {
+        rankingMatrix[i][0] = i + 1;
+        rankingMatrix[i][1] = rankingData[i].score;
+    }
+
     int y = startY + 40;
-    for (int i = 0; i < totalPlayers && i < maxDisplay; i++) {
+    for (int i = 0; i < rowsToShow; i++) {
         bool isCurrentPlayer = (currentPlayerPos > 0 && (i + 1) == currentPlayerPos);
         
         Color bgColor = isCurrentPlayer ? (Color){60, 45, 20, 200} : (Color){25, 30, 45, 150};
@@ -133,13 +140,13 @@ void DrawRanking(void) {
         }
 
         char posStr[16];
-        snprintf(posStr, sizeof(posStr), "%d°", i + 1);
+        snprintf(posStr, sizeof(posStr), "%d°", rankingMatrix[i][0]);
         DrawText(posStr, 60, y, 20, textColor);
 
         DrawText(rankingData[i].name, 150, y, 20, textColor);
 
         char scoreStr[32];
-        snprintf(scoreStr, sizeof(scoreStr), "%d pts", rankingData[i].score);
+        snprintf(scoreStr, sizeof(scoreStr), "%d pts", rankingMatrix[i][1]);
         DrawText(scoreStr, W - 200, y, 20, textColor);
 
         if (isCurrentPlayer) {
