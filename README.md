@@ -1,3 +1,5 @@
+
+
 # Quarteto Fantástico — Builds & Execução (WSL / Linux / macOS)
 
 <p align="center">
@@ -21,6 +23,7 @@ Para compilar e executar o projeto, você precisará das seguintes dependências
 * **Raylib** (biblioteca de jogos simples e fácil de usar)
 * **gcc / build-essential** (compilador C e ferramentas de build)
 * **pkg-config** (Apenas para Linux/WSL)
+* **Homebrew** (Apenas para macOS)
 * **Bibliotecas de X11 / OpenGL** (para renderização gráfica - Apenas para Linux/WSL)
 
 ---
@@ -50,8 +53,31 @@ Bash
 
 brew install raylib
 🏗️ Compilar o Jogo (Building the Game)
-Opção A: Usando CMake (Linux/WSL - Recomendado)
-Execute os seguintes comandos a partir da raiz do projeto:
+O método recomendado é usar o Makefile apropriado para o seu sistema.
+
+Opção 1: Usando Makefile (Recomendado)
+🐧 Linux / WSL
+Se o seu sistema for Linux (ou WSL), use o Makefile configurado para as bibliotecas padrão do sistema.
+
+Salve o conteúdo abaixo como Makefile.linux na raiz do projeto.
+
+Na raiz do projeto, execute:
+
+Bash
+
+make -f Makefile.linux
+🍎 macOS
+Se o seu sistema for macOS, use o Makefile que utiliza caminhos do Homebrew para a Raylib.
+
+Salve o conteúdo abaixo como Makefile.mac na raiz do projeto.
+
+Na raiz do projeto, execute:
+
+Bash
+
+make -f Makefile.mac
+Opção 2: Usando CMake (Linux/WSL)
+Como alternativa no Linux/WSL, você ainda pode usar o CMake (se preferir uma ferramenta de build de nível superior):
 
 Bash
 
@@ -59,48 +85,26 @@ mkdir build
 cd build
 cmake ..
 make
-Opção B: Usando GCC (Compilação Direta)
-🐧 Linux / WSL
-Bash
-
-gcc src/*.c -o quarteto -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
-🍎 macOS
-Certifique-se de que o Homebrew e a Raylib estão instalados. Execute o comando abaixo a partir da raiz do projeto:
-
-Bash
-
-gcc -Wall -Wextra -std=c99 \
-    -I$(brew --prefix raylib)/include \
-    src/*.c \
-    -L$(brew --prefix raylib)/lib \
-    -lraylib -lm \
-    -framework Cocoa -framework IOKit -framework CoreVideo \
-    -o quarteto
-Nota: Substitua src/*.c pela lista completa dos seus arquivos .c se a expansão de curinga não funcionar como esperado. O executável final será chamado de quarteto.
-
 ▶️ Executar o Jogo (Running the Game)
 1. Navegue até o Diretório Certo
-É crucial que o executável seja executado a partir do diretório raiz do repositório para que a pasta assets/ seja encontrada.
+É fundamental que o executável seja executado a partir do diretório raiz do repositório para que a pasta assets/ seja encontrada corretamente.
 
 2. Executar
-Se você usou CMake (Opção A):
+O executável gerado se chamará game (usando os Makefiles) ou quarteto (usando CMake na pasta build).
+
+Se usou o Makefile (game):
+
+Bash
+
+./game
+Se usou CMake (quarteto):
 
 Bash
 
 ./build/quarteto
-Se você usou GCC (Opção B):
-
-Bash
-
-./quarteto
-ou
-
-Bash
-
-./game # (Se você mudou o nome de saída para 'game' no macOS)
 ⚠️ Observações Importantes (Notes)
 Gráficos: O jogo utiliza a Raylib e OpenGL para renderização.
 
 WSL: Se estiver no WSL, você deve ter o suporte gráfico configurado (usando WSLg ou um servidor X configurado) para que a janela do jogo seja exibida.
 
-Assets: A pasta assets/ (contendo texturas, sprites, etc.) deve estar no mesmo nível de diretório de onde o executável é chamado (o diretório de trabalho atual), não onde o executável está localizado.
+Assets: A pasta assets/ (contendo texturas, sprites, etc.) deve estar no mesmo nível de diretório de onde o executável é chamado (o diretório de trabalho atual).
