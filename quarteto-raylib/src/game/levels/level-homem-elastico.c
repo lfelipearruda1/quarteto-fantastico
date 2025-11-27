@@ -141,8 +141,8 @@ static void InitLevelElastico(Level *level) {
         data->enemies[i].position = (Vector2){ 600 + i * 550, GROUND_Y - 70 };
         data->enemies[i].active = false;
         data->enemies[i].speed = 2.0f + (float)(rand() % 100) / 100.0f;
-        data->enemies[i].width = 70;
-        data->enemies[i].height = 70;
+        data->enemies[i].width = 120;
+        data->enemies[i].height = 120;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {

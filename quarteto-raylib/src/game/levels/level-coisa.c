@@ -141,8 +141,8 @@ static void InitLevel1(Level *level) {
         data->enemies[i].position = (Vector2){ 650 + i * 600, GROUND_Y - 80 };
         data->enemies[i].active = false;
         data->enemies[i].speed = 1.8f + (float)(rand() % 90) / 100.0f;
-        data->enemies[i].width = 80;
-        data->enemies[i].height = 80;
+        data->enemies[i].width = 120;
+        data->enemies[i].height = 120;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {

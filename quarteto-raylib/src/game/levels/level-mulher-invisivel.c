@@ -145,8 +145,8 @@ static void InitLevelInvisivel(Level *level) {
         data->enemies[i].position = (Vector2){ 800 + i * 800, GROUND_Y - 85 };
         data->enemies[i].active = false;
         data->enemies[i].speed = 1.2f + (float)(rand() % 50) / 100.0f;
-        data->enemies[i].width = 85;
-        data->enemies[i].height = 85;
+        data->enemies[i].width = 120;
+        data->enemies[i].height = 120;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {

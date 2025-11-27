@@ -143,8 +143,8 @@ static void InitLevelTocha(Level *level) {
         data->enemies[i].position = (Vector2){ 700 + i * 650, GROUND_Y - 70 };
         data->enemies[i].active = false;
         data->enemies[i].speed = 1.5f + (float)(rand() % 70) / 100.0f;
-        data->enemies[i].width = 70;
-        data->enemies[i].height = 70;
+        data->enemies[i].width = 120;
+        data->enemies[i].height = 120;
     }
 
     for (int i = 0; i < MAX_OBSTACLES; i++) {
