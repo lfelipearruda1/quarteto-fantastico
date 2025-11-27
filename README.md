@@ -1,95 +1,106 @@
-# 🕹️ Quarteto Fantástico – Plataforma Raylib (WSL2/Linux)
+# Quarteto Fantástico — Builds & Execução (WSL / Linux / macOS)
 
-Este projeto é um jogo de plataforma desenvolvido com **C + Raylib**, adaptado para rodar no **WSL2 (Ubuntu)** usando renderização via **X11**.
+<p align="center">
+  <img src="https://img.shields.io/badge/Language-C-blue.svg" alt="Linguagem: C">
+  <img src="https://img.shields.io/badge/Framework-Raylib-red.svg" alt="Framework: Raylib">
+  <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20WSL%20%7C%20macOS-yellow.svg" alt="Plataformas: Linux | WSL | macOS">
+</p>
 
-## ✅ Requisitos
+## 🚀 Demonstração (Demo)
+Confira o jogo em ação!
 
-### 1. Dependências do sistema
+| Idioma | Link |
+| :--- | :--- |
+| **Português** | [Gameplay no YouTube](https://youtu.be/p4kI9Ytr3s8) 🎬 |
 
-Instale tudo de uma vez:
+---
 
-```bash
-sudo apt update
-sudo apt install -y build-essential cmake git gcc g++ \
-    libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev \
-    libgl1-mesa-dev libglu1-mesa-dev libasound2-dev
-2. Instalar a Raylib localmente
-Baixe e compile:
+## 🛠️ Dependências (Dependencies)
+Para compilar e executar o projeto, você precisará das seguintes dependências:
 
-bash
-Copiar código
-git clone https://github.com/raysan5/raylib
+* **Raylib** (biblioteca de jogos simples e fácil de usar)
+* **gcc / build-essential** (compilador C e ferramentas de build)
+* **pkg-config** (Apenas para Linux/WSL)
+* **Bibliotecas de X11 / OpenGL** (para renderização gráfica - Apenas para Linux/WSL)
+
+---
+
+## 📦 Instalação e Configuração
+
+### 🐧 Linux / WSL (Ubuntu)
+1. **Instalar Ferramentas e Dependências Gráficas:**
+   ```bash
+   sudo apt update
+   sudo apt install build-essential git cmake pkg-config \
+       libgl1-mesa-dev libx11-dev libxi-dev libxrandr-dev libxinerama-dev libxcursor-dev
+Clonar e Instalar a Raylib:
+
+Bash
+
+git clone [https://github.com/raysan5/raylib.git](https://github.com/raysan5/raylib.git)
 cd raylib/src
-make PLATFORM=PLATFORM_DESKTOP
-sudo make install
-Arquivos instalados (exemplo):
-
-swift
-Copiar código
-/usr/local/include/raylib.h
-/usr/local/lib/libraylib.a
-3. Servidor gráfico no Windows (WSL2)
-Windows 11 (WSLg): já vem configurado — nada a fazer.
-
-Windows 10: instale/use um XServer (VcXsrv / Xming) e inicie antes de rodar o jogo.
-
-🔧 Como compilar o jogo
-Dentro da pasta quarteto-raylib:
-
-bash
-Copiar código
-make clean
 make
-Se tudo der certo, o binário game será gerado.
+sudo make install
+🍎 macOS
+Instalar Homebrew (Se ainda não tiver).
 
-▶️ Como executar
-Ainda na pasta do projeto:
+Instalar Raylib via Homebrew:
 
-bash
-Copiar código
-./game
-O jogo abrirá em janela gráfica via WSL2.
+Bash
 
-🛠️ Estrutura do projeto
-css
-Copiar código
-quarteto-raylib/
-│
-├─ src/
-│  ├─ main.c
-│  ├─ player/
-│  ├─ game/
-│  ├─ ranking/
-│  ├─ logo/
-│  └─ select/
-│
-├─ assets/
-├─ players.txt
-└─ Makefile
-🧹 Limpar binários
-bash
-Copiar código
-make clean
-❗ Erros comuns & soluções
-1) undefined reference to InitWindow, DrawText, etc.
-Raylib não está sendo linkada. Verifique o Makefile para conter a linha de link:
+brew install raylib
+🏗️ Compilar o Jogo (Building the Game)
+Opção A: Usando CMake (Linux/WSL - Recomendado)
+Execute os seguintes comandos a partir da raiz do projeto:
 
-bash
-Copiar código
--L/usr/local/lib -lraylib -lm -lpthread -ldl -lrt -lX11
-2) error: X11/Xlib.h: No such file or directory
-Instale a dependência:
+Bash
 
-bash
-Copiar código
-sudo apt install libx11-dev
-3) Janela não abre no WSL2 (Windows 10 + VcXsrv)
-Abra o VcXsrv com:
+mkdir build
+cd build
+cmake ..
+make
+Opção B: Usando GCC (Compilação Direta)
+🐧 Linux / WSL
+Bash
 
-Mode: Multiple windows
+gcc src/*.c -o quarteto -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+🍎 macOS
+Certifique-se de que o Homebrew e a Raylib estão instalados. Execute o comando abaixo a partir da raiz do projeto:
 
-Desmarcar Native OpenGL
+Bash
 
-Marcar Disable access control
+gcc -Wall -Wextra -std=c99 \
+    -I$(brew --prefix raylib)/include \
+    src/*.c \
+    -L$(brew --prefix raylib)/lib \
+    -lraylib -lm \
+    -framework Cocoa -framework IOKit -framework CoreVideo \
+    -o quarteto
+Nota: Substitua src/*.c pela lista completa dos seus arquivos .c se a expansão de curinga não funcionar como esperado. O executável final será chamado de quarteto.
 
-Inicie o VcXsrv antes de rodar ./game.
+▶️ Executar o Jogo (Running the Game)
+1. Navegue até o Diretório Certo
+É crucial que o executável seja executado a partir do diretório raiz do repositório para que a pasta assets/ seja encontrada.
+
+2. Executar
+Se você usou CMake (Opção A):
+
+Bash
+
+./build/quarteto
+Se você usou GCC (Opção B):
+
+Bash
+
+./quarteto
+ou
+
+Bash
+
+./game # (Se você mudou o nome de saída para 'game' no macOS)
+⚠️ Observações Importantes (Notes)
+Gráficos: O jogo utiliza a Raylib e OpenGL para renderização.
+
+WSL: Se estiver no WSL, você deve ter o suporte gráfico configurado (usando WSLg ou um servidor X configurado) para que a janela do jogo seja exibida.
+
+Assets: A pasta assets/ (contendo texturas, sprites, etc.) deve estar no mesmo nível de diretório de onde o executável é chamado (o diretório de trabalho atual), não onde o executável está localizado.
