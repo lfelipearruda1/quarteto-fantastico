@@ -12,7 +12,7 @@ typedef struct {
     int score;
 } RankingEntry;
 
-static RankingEntry *rankingData = NULL;
+static RankingEntry rankingData[MAX_RANKING_SIZE];
 static int totalPlayers = 0;
 static char currentPlayerName[32] = {0};
 static bool hasCurrentPlayer = false;
@@ -36,20 +36,10 @@ static int CompareScores(const void *a, const void *b) {
 }
 
 void LoadRanking(void) {
-    if (rankingData) {
-        free(rankingData);
-        rankingData = NULL;
-    }
     totalPlayers = 0;
 
     FILE *f = fopen("players.txt", "r");
     if (!f) {
-        return;
-    }
-
-    rankingData = (RankingEntry*)malloc(MAX_RANKING_SIZE * sizeof(RankingEntry));
-    if (!rankingData) {
-        fclose(f);
         return;
     }
 
@@ -59,7 +49,8 @@ void LoadRanking(void) {
         int score = 0;
         
         if (sscanf(line, "%63s %d", name, &score) >= 1) {
-            strncpy(rankingData[totalPlayers].name, name, sizeof(rankingData[totalPlayers].name) - 1);
+            strncpy(rankingData[totalPlayers].name, name,
+                    sizeof(rankingData[totalPlayers].name) - 1);
             rankingData[totalPlayers].name[sizeof(rankingData[totalPlayers].name) - 1] = '\0';
             rankingData[totalPlayers].score = score;
             totalPlayers++;
@@ -67,7 +58,9 @@ void LoadRanking(void) {
     }
     fclose(f);
 
-    qsort(rankingData, totalPlayers, sizeof(RankingEntry), CompareScores);
+    if (totalPlayers > 0) {
+        qsort(rankingData, totalPlayers, sizeof(RankingEntry), CompareScores);
+    }
 }
 
 void InitRanking(void) {
@@ -120,7 +113,7 @@ void DrawRanking(void) {
     if (hasCurrentPlayer) {
         for (int i = 0; i < totalPlayers; i++) {
             if (strcmp(rankingData[i].name, currentPlayerName) == 0) {
-                currentPlayerPos = i + 1;
+                currentPlayerPos = i + 1; // posição começa em 1
                 break;
             }
         }
@@ -158,10 +151,7 @@ void DrawRanking(void) {
 }
 
 void FreeRanking(void) {
-    if (rankingData) {
-        free(rankingData);
-        rankingData = NULL;
-    }
     totalPlayers = 0;
     hasCurrentPlayer = false;
+    currentPlayerName[0] = '\0';
 }
