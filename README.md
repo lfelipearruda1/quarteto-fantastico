@@ -1,67 +1,58 @@
-🕹️ Quarteto Fantástico – Plataforma Raylib (WSL2/Linux)
+# 🕹️ Quarteto Fantástico – Plataforma Raylib (WSL2/Linux)
 
-Este projeto é um jogo de plataforma desenvolvido com C + Raylib, adaptado para rodar no WSL2 (Ubuntu) usando renderização via X11.
+Este projeto é um jogo de plataforma desenvolvido com **C + Raylib**, adaptado para rodar no **WSL2 (Ubuntu)** usando renderização via **X11**.
 
-✅ Requisitos
+## ✅ Requisitos
 
-Antes de compilar, é necessário ter:
+### 1. Dependências do sistema
 
-1. Dependências do sistema
+Instale tudo de uma vez:
 
-Instale de uma vez:
-
+```bash
 sudo apt update
 sudo apt install -y build-essential cmake git gcc g++ \
     libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev \
     libgl1-mesa-dev libglu1-mesa-dev libasound2-dev
-
 2. Instalar a Raylib localmente
+Baixe e compile:
 
-Baixar e compilar:
-
+bash
+Copiar código
 git clone https://github.com/raysan5/raylib
 cd raylib/src
 make PLATFORM=PLATFORM_DESKTOP
 sudo make install
+Arquivos instalados (exemplo):
 
-
-Isso instala:
-
+swift
+Copiar código
 /usr/local/include/raylib.h
-
 /usr/local/lib/libraylib.a
+3. Servidor gráfico no Windows (WSL2)
+Windows 11 (WSLg): já vem configurado — nada a fazer.
 
-3. Ter um servidor gráfico ativo no Windows
-
-Para rodar janelas gráficas no WSL2 você precisa de:
-
-WSLg (já vem no Windows 11)
-ou
-
-XServer externo (VcXsrv / Xming) se estiver no Windows 10
-
-Se usar Windows 11 ou WSLg: não precisa fazer nada.
+Windows 10: instale/use um XServer (VcXsrv / Xming) e inicie antes de rodar o jogo.
 
 🔧 Como compilar o jogo
+Dentro da pasta quarteto-raylib:
 
-Dentro da pasta quarteto-raylib, execute:
-
+bash
+Copiar código
 make clean
 make
-
-
-Se tudo correr bem, o arquivo binário game será gerado.
+Se tudo der certo, o binário game será gerado.
 
 ▶️ Como executar
+Ainda na pasta do projeto:
 
-Ainda na pasta quarteto-raylib:
-
+bash
+Copiar código
 ./game
-
-
-O jogo deve abrir numa janela gráfica normal pelo WSL2.
+O jogo abrirá em janela gráfica via WSL2.
 
 🛠️ Estrutura do projeto
+css
+Copiar código
 quarteto-raylib/
 │
 ├─ src/
@@ -75,30 +66,30 @@ quarteto-raylib/
 ├─ assets/
 ├─ players.txt
 └─ Makefile
-
 🧹 Limpar binários
+bash
+Copiar código
 make clean
+❗ Erros comuns & soluções
+1) undefined reference to InitWindow, DrawText, etc.
+Raylib não está sendo linkada. Verifique o Makefile para conter a linha de link:
 
-❗ Erros comuns
-1. undefined reference to InitWindow, DrawText, etc
-
-A raylib não está sendo linkada corretamente.
-Verifique se o Makefile contém:
-
+bash
+Copiar código
 -L/usr/local/lib -lraylib -lm -lpthread -ldl -lrt -lX11
+2) error: X11/Xlib.h: No such file or directory
+Instale a dependência:
 
-2. error: X11/Xlib.h: No such file or directory
-
-Instale:
-
+bash
+Copiar código
 sudo apt install libx11-dev
+3) Janela não abre no WSL2 (Windows 10 + VcXsrv)
+Abra o VcXsrv com:
 
-3. Janela não abre
+Mode: Multiple windows
 
-Se estiver no Windows 10, abra o VcXsrv antes:
+Desmarcar Native OpenGL
 
-Modo: Multiple windows
+Marcar Disable access control
 
-Desabilitar Native OpenGL
-
-Habilitar Disable access control
+Inicie o VcXsrv antes de rodar ./game.
