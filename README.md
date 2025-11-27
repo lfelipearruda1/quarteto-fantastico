@@ -1,4 +1,4 @@
-# Quarteto Fantástico — Builds & Execução (WSL / Linux)
+# Quarteto Fantástico — Builds & Execução (WSL / Linux / MACOS)
 
 <p align="center">
   <img src="https://img.shields.io/badge/Language-C-blue.svg" alt="Linguagem: C">
