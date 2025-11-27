@@ -9,9 +9,9 @@
 ## 🚀 Demonstração (Demo)
 Confira o jogo em ação!
 
-| Idioma | Link |
-|-------|------|
-| 🇧🇷 **Português** | 🎬 [Gameplay no YouTube](https://youtu.be/p4kI9Ytr3s8) |
+Link Screencast|
+------|
+🎬 [Gameplay no YouTube](https://youtu.be/p4kI9Ytr3s8) |
 
 ---
 
