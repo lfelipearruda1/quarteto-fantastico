@@ -72,7 +72,7 @@ Nota: Se você não usou a estrutura de diretórios build, ajuste o caminho de s
 
 Bash
 
-cd /caminho/para/seu/repositorio # (Se você estiver em 'build')
+cd /caminho/para/seu/repositorio 
 2. Executar
 Se você usou CMake (Opção A):
 
